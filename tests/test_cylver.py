@@ -175,8 +175,22 @@ def test_stick_slip_simulation_agrees_with_linear_criterion():
     pl = dynamics.Plant(d)
     y = pl.hold_state(0.5 * d.stroke)
     k = d.A_A**2 / ((pl.V0 + d.A_A * 0.5 * d.stroke) / pl.K_ch(y[2]) + pl.V_line / pl.K_ln(y[2]))
-    assert seals.stick_slip_sim(d, 0.5 * vc, p, k)["growth"] > 1.0
-    assert seals.stick_slip_sim(d, 2.0 * vc, p, k)["growth"] < 1.0
+    below = seals.stick_slip_sim(d, 0.5 * vc, p, k)
+    above = seals.stick_slip_sim(d, 2.0 * vc, p, k)
+    assert below["stick"] or below["growth"] > 1.05
+    assert not above["stick"] and above["growth"] < 1.0
+
+
+@pytest.mark.parametrize("kind,measured_mm_s", [("PTFE_compact", 0.3), ("PU_compact", 1.4)])
+def test_seal_model_reproduces_measured_onsets(kind, measured_mm_s):
+    # Sarbu et al., Polymers 14(2):290 (2022): 60 mm coaxial seals; stick-slip / eigen-vibrations end at
+    # 0.3 mm/s (Virgin PTFE) and stick-slip ends at 1.4 mm/s (H-PU 55D). The calibrated model must be
+    # conservative (onset at or above the measured value) but within a factor 3 of it.
+    s = seals.Seal(kind, 0.060)
+    v = np.geomspace(1e-6, 0.05, 6000)
+    c = np.array([s.slope(x, 2e6) for x in v])
+    onset = v[np.nonzero(c < 0)[0][-1] + 1] * 1e3
+    assert measured_mm_s <= onset <= 3 * measured_mm_s
 
 
 def test_thermal_drift_hand_calc():
@@ -201,8 +215,11 @@ def test_acceptance_flags_a_sticky_seal_set():
     d = design("LD-80", 2)
     res = {"p_hold_bar": d.o["load_extend_kN"] * 1e3 / d.A_A / 1e5}
     good = acceptance.evaluate(d, acceptance.bench_data(d, seed=3), res)
-    bad = acceptance.evaluate(d, acceptance.bench_data(d, seed=3, scale_rs=3.0), res)
-    assert bad["rs_breakaway"] > good["rs_breakaway"]
+    # a seal set whose friction falls over a 30x wider speed range (Stribeck speed x30) with 10x the
+    # static excess: the fitted curve puts the stick-slip onset above the 10 mm/s requirement
+    bad = acceptance.evaluate(d, acceptance.bench_data(d, seed=3, scale_fs=10.0, scale_vs=30.0), res)
+    assert good["F2"]["pass"] and good["F1"]["pass"]
+    assert bad["vs_mm_s"] > good["vs_mm_s"]
     assert not bad["F2"]["pass"]
 
 

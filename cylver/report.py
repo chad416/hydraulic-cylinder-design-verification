@@ -118,9 +118,9 @@ def revision_block(res: dict, img: str | None) -> tuple[str, dict]:
     L.append("\n**Acceptance test procedure (limits derived from this analysis)**\n")
     L.append(_t([[a["step"], a["module"], a["what"], a["limit"], a["why"]] for a in atp], ["step", "module", "test", "pass limit", "why"]))
     L.append(
-        f"\nBench evaluation demo on SYNTHETIC data (model + 1 % + 10 N noise; not a real test): fitted Coulomb {ev['Fc_N']:.0f} N, Stribeck speed {ev['vs_mm_s']:.1f} mm/s, "
-        f"static/Coulomb {ev['rs_breakaway']:.2f}. F-1 {'PASS' if ev['F1']['pass'] else 'FAIL'} ({ev['F1']['value']:.0f} <= {ev['F1']['limit']:.0f} N); "
-        f"F-2 {'PASS' if ev['F2']['pass'] else 'FAIL'} ({ev['F2']['value']:.2f} <= {ev['F2']['limit']:.2f}).\n"
+        f"\nBench evaluation demo on SYNTHETIC data (calibrated model + 1 % + 5 N noise; not a real test): fitted Coulomb {ev['Fc_N']:.0f} N, static excess {ev['dFs_N']:.0f} N, "
+        f"Stribeck speed {ev['vs_mm_s']:.2f} mm/s. F-1 {'PASS' if ev['F1']['pass'] else 'FAIL'} ({ev['F1']['value']:.0f} <= {ev['F1']['limit']:.0f} N); "
+        f"F-2 {'PASS' if ev['F2']['pass'] else 'FAIL'} ({ev['F2']['value']:.0f} <= {ev['F2']['limit']:.0f} N).\n"
     )
     if not ev["F2"]["pass"]:
         L.append("F-2 fails even on data generated from the nominal (assumed) seal model: with these seals R-12 cannot be met, the same finding as R-12 above. The limit states what the seal set would have to achieve.\n")

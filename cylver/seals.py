@@ -1,13 +1,29 @@
 """Seal friction (Stribeck), stick-slip onset, extrusion gap limits and drift.
 
-Friction model per seal (rod seal and piston seal), per unit circumference:
-    F(v, p) = pi d [ (f0 + fp p) (1 + (rs - 1) exp(-(v/vs)^2)) sign(v) + fv v ]
-i.e. a Coulomb level that grows with the sealed pressure, a static peak rs times the Coulomb level that
-decays over the Stribeck velocity vs, and a viscous term (Stribeck form as used by Armstrong-Helouvry
-et al. 1994, Automatica 30(7); pressure-proportional Coulomb level as in Mueller & Nau, Fluid Sealing
-Technology). The parameter values below are ASSUMED orders of magnitude, not catalogue data. They are
-the quantities that the ISO 10100 module F friction test (static friction and friction at test speed)
-measures, so the acceptance test identifies them; see acceptance.py.
+Friction model of one seal element, per unit circumference (N/mm), at sealed pressure p (MPa):
+    F(v, p) = pi d [ (f0 + fp p + fs(p) exp(-(v/vs)^2)) sign(v) + fv v ]
+a Coulomb level that grows with pressure, a static excess fs that dies out over the Stribeck velocity vs,
+and a viscous term (Stribeck form as in Armstrong-Helouvry et al. 1994, Automatica 30(7)). A seal system
+is a list of elements; the secondary seal of a tandem rod seal sees (almost) no pressure.
+
+CALIBRATION (checked, open access, CC BY):
+- F. A. Sarbu, F. Arnaut, A. Deaconescu, T. Deaconescu, "Theoretical and experimental research concerning
+  the friction forces developed in hydraulic cylinder coaxial sealing systems made from polymers",
+  Polymers 16(1):157, 2024, doi:10.3390/polym16010157, Tables 3 and 5: total friction of two identical
+  coaxial piston seals vs pressure (0-160 bar) at two low speeds.
+- Same group, "Experimental research on polymer-based coaxial sealing systems of hydraulic cylinders for
+  small displacement velocities", Polymers 14(2):290, 2022, doi:10.3390/polym14020290: seal diameter
+  60 mm, width 4 mm; stick-slip for Virgin PTFE below 0.2 mm/s (eigen-vibrations to 0.3 mm/s) at pressures
+  < 4 MPa; for H-PU 55D stick-slip up to 1.4 mm/s.
+Derived per seal (circumference pi x 60 = 188.5 mm):
+- Virgin PTFE: 29.8 N at 0 bar, slope 6.43 N/MPa (1.6 mm/s) -> f0 0.158, fp 0.034. Low-speed excess
+  (0.125 vs 1.6 mm/s) 3-12 N per seal at 40-160 bar -> fs ~0.04 N/mm with vs 0.2 mm/s.
+- H-PU 55D: 83.7 N at 0 bar, slope 8.95 N/MPa (1.75 mm/s) -> f0 0.444, fp 0.0475. Excess (0.7 vs
+  1.75 mm/s) 5-27 N per seal -> fs 0.045 N/mm at 0 bar rising to 0.20 N/mm from 2 MPa, vs 1.0 mm/s.
+STILL ASSUMED: the viscous coefficients fv (only matter at high speed), the use of PU coaxial-seal data
+for a PU U-cup (closest published data found), and the extrusion-gap limits gap_mm (seal makers' tables,
+not retrieved). test_seal_model_reproduces_measured_onsets checks the calibrated model against the
+measured stick-slip onsets.
 """
 
 from __future__ import annotations
@@ -18,14 +34,21 @@ from dataclasses import dataclass
 import numpy as np
 from scipy.integrate import solve_ivp
 
-# f0 N/mm, fp N/mm per MPa, rs = static/Coulomb, vs m/s, fv N/mm per (m/s); gap_mm = allowable radial
-# extrusion gap at 16 / 25 / 40 MPa. ASSUMED values (see module docstring).
+PTFE = {"f0": 0.158, "fp": 0.034, "fs0": 0.040, "fs1": 0.040, "vs": 0.2e-3, "fv": 1.2}
+PU = {"f0": 0.444, "fp": 0.0475, "fs0": 0.045, "fs1": 0.20, "vs": 1.0e-3, "fv": 3.0}
+# elements: (data, share of the sealed pressure it sees); gap_mm = allowable radial extrusion gap at
+# 16 / 25 / 40 MPa (ASSUMED, seal makers' charts not retrieved)
 SEALS = {
-    "PU_ucup": {"f0": 0.40, "fp": 0.10, "rs": 1.8, "vs": 0.012, "fv": 3.0, "gap_mm": (0.30, 0.20, 0.10), "desc": "polyurethane U-cup"},
-    "PU_compact": {"f0": 0.40, "fp": 0.09, "rs": 1.7, "vs": 0.012, "fv": 3.0, "gap_mm": (0.30, 0.20, 0.10), "desc": "polyurethane compact piston seal"},
-    "PTFE_step+PU": {"f0": 0.25, "fp": 0.05, "rs": 1.25, "vs": 0.006, "fv": 1.5, "gap_mm": (0.40, 0.30, 0.20), "desc": "PTFE step seal + PU U-cup tandem"},
-    "PTFE_compact": {"f0": 0.20, "fp": 0.04, "rs": 1.2, "vs": 0.006, "fv": 1.2, "gap_mm": (0.40, 0.30, 0.20), "desc": "PTFE glide ring with O-ring energiser"},
+    "PU_ucup": {"elements": [(PU, 1.0)], "gap_mm": (0.30, 0.20, 0.10), "desc": "polyurethane U-cup (PU coaxial data as proxy)"},
+    "PU_compact": {"elements": [(PU, 1.0)], "gap_mm": (0.30, 0.20, 0.10), "desc": "polyurethane compact piston seal"},
+    "PTFE_step+PU": {"elements": [(PTFE, 1.0), (PU, 0.0)], "gap_mm": (0.40, 0.30, 0.20), "desc": "PTFE step seal + PU U-cup tandem"},
+    "PTFE_compact": {"elements": [(PTFE, 1.0)], "gap_mm": (0.40, 0.30, 0.20), "desc": "PTFE glide ring with O-ring energiser"},
 }
+FS_SCALE = {"k": 1.0, "v": 1.0}  # multiply every static excess / Stribeck speed (test and what-if use only)
+
+
+def _fs(e: dict, p_mpa: float) -> float:
+    return FS_SCALE["k"] * (e["fs0"] + (e["fs1"] - e["fs0"]) * min(1.0, p_mpa / 2.0))
 
 
 @dataclass
@@ -37,22 +60,36 @@ class Seal:
     def p(self) -> dict:
         return SEALS[self.kind]
 
+    def _c(self) -> float:
+        return math.pi * self.d * 1e3  # circumference in mm
+
     def coulomb(self, p: float) -> float:
-        s = self.p
-        return math.pi * self.d * 1e3 * (s["f0"] + s["fp"] * max(p, 0.0) / 1e6)
+        return self._c() * sum(e["f0"] + e["fp"] * sh * max(p, 0.0) / 1e6 for e, sh in self.p["elements"])
+
+    def static_excess(self, p: float) -> float:
+        return self._c() * sum(_fs(e, sh * max(p, 0.0) / 1e6) for e, sh in self.p["elements"])
+
+    def breakaway(self, p: float) -> float:
+        return self.coulomb(p) + self.static_excess(p)
 
     def force(self, v: float, p: float, v_eps: float = 1e-5) -> float:
         """Smooth friction force opposing v (tanh regularisation of sign(v) below v_eps)."""
-        s = self.p
-        fc = self.coulomb(p)
-        stri = fc * (1 + (s["rs"] - 1) * math.exp(-((v / s["vs"]) ** 2)))
-        return stri * math.tanh(v / v_eps) + math.pi * self.d * 1e3 * s["fv"] * v
+        c = self._c()
+        f = 0.0
+        for e, sh in self.p["elements"]:
+            pm = sh * max(p, 0.0) / 1e6
+            f += c * (e["f0"] + e["fp"] * pm + _fs(e, pm) * math.exp(-((v / (e["vs"] * FS_SCALE["v"])) ** 2))) * math.tanh(v / v_eps) + c * e["fv"] * v
+        return f
 
     def slope(self, v: float, p: float) -> float:
         """dF/dv for v > 0 (sliding branch)."""
-        s = self.p
-        fc = self.coulomb(p)
-        return -fc * (s["rs"] - 1) * 2 * v / s["vs"] ** 2 * math.exp(-((v / s["vs"]) ** 2)) + math.pi * self.d * 1e3 * s["fv"]
+        c = self._c()
+        out = 0.0
+        for e, sh in self.p["elements"]:
+            pm = sh * max(p, 0.0) / 1e6
+            vs = e["vs"] * FS_SCALE["v"]
+            out += -c * _fs(e, pm) * 2 * v / vs**2 * math.exp(-((v / vs) ** 2)) + c * e["fv"]
+        return out
 
     def gap_allow(self, p: float) -> float:
         """Allowable radial extrusion gap (mm) at pressure p, linear between the table points."""
@@ -72,7 +109,7 @@ def stick_slip_linear(des, p_hold: float) -> float:
     """Lowest steady sliding speed at which the linearised drive (oil column + mass + friction) is stable:
     m s^2 + c s + k with c = dF/dv. Unstable (stick-slip) while c < 0. Returns the critical speed (m/s)."""
     rod, pis = seals_of(des)
-    vs = np.geomspace(1e-5, 0.5, 4000)
+    vs = np.geomspace(1e-6, 0.5, 6000)
     c = np.array([rod.slope(v, 0.0) + pis.slope(v, p_hold) for v in vs])
     neg = np.nonzero(c < 0)[0]
     return 0.0 if len(neg) == 0 else float(vs[neg[-1] + 1])
@@ -90,7 +127,7 @@ def stick_slip_sim(des, v0: float, p_hold: float, k_oil: float, t_end: float | N
 
     def rhs(t, y):
         x, v, p = y
-        F = rod.force(v, 0.0, 2e-5) + pis.force(v, p, 2e-5)
+        F = rod.force(v, 0.0, 0.02 * v0) + pis.force(v, p, 0.02 * v0)
         return [v, (p * A - F_load - F) / m, k_oil / A**2 * (A * v0 - A * v)]
 
     period = 2 * math.pi * math.sqrt(m / k_oil)

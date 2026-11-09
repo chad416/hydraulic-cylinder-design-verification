@@ -10,6 +10,7 @@ p. 682) and 2000 random weight sets (Dirichlet around the base weights).
 from __future__ import annotations
 
 import copy
+import math
 
 import numpy as np
 
@@ -29,7 +30,10 @@ def score(trade: dict) -> dict:
     w = w / w.sum()
     S = np.array([[a["scores"][c["name"]] for c in trade["criteria"]] for a in alts])
     total = S @ w
-    order = np.argsort(-total)
+    # Wasson (2016, p. 683): only VIABLE alternatives (those meeting the specification) are ranked
+    viable = np.array([a.get("viable", True) for a in alts])
+    Sv = np.where(viable[:, None], S, -1e9)
+    order = [i for i in np.argsort(-(S @ w)) if viable[i]]
     base_best = int(order[0])
     flips = []
     for i, c in enumerate(trade["criteria"]):
@@ -37,12 +41,13 @@ def score(trade: dict) -> dict:
             w2 = w.copy()
             w2[i] *= f
             w2 /= w2.sum()
-            if int(np.argmax(S @ w2)) != base_best:
+            if int(np.argmax(Sv @ w2)) != base_best:
                 flips.append(f"{c['name']} x{f:g}")
     rng = np.random.default_rng(7)
     W = rng.dirichlet(w * 40, size=2000)
-    wins = np.bincount(np.argmax(S @ W.T, axis=0), minlength=len(alts)) / 2000
-    return {"total": total, "rank": [alts[i]["name"] for i in order], "flips_10pct": flips, "win_share": wins, "S": S, "w": w}
+    wins = np.bincount(np.argmax(Sv @ W.T, axis=0), minlength=len(alts)) / 2000
+    rank = [alts[i]["name"] for i in order] + [alts[i]["name"] + " (not viable: " + alts[i].get("why_not", "") + ")" for i in range(len(alts)) if not viable[i]]
+    return {"total": total, "rank": rank, "flips_10pct": flips, "win_share": wins, "S": S, "w": w}
 
 
 def seal_trade(raw: dict) -> dict:
@@ -60,12 +65,20 @@ def seal_trade(raw: dict) -> dict:
 
         gap = extrusion_gap(d, d.p_relief)["gap_mm"]
         allow = seals.Seal(pis_k, d.D).gap_allow(d.p_relief)
+        vmin = d.o["speed_min_smooth_mm_s"]
+        why = []
+        if allow / gap < 1.0:
+            why.append(f"extrusion margin {allow / gap:.2f} < 1 (R-09)")
+        if vcrit > vmin:
+            why.append(f"stick-slip onset {vcrit:.1f} > {vmin:g} mm/s (R-12)")
         alts.append(
             {
                 "name": name,
+                "viable": not why,
+                "why_not": "; ".join(why),
                 "raw": {"stick-slip onset mm/s": vcrit, "friction % of thrust": fr, "extrusion margin": allow / gap},
                 "scores": {
-                    "smooth motion (model)": _util(vcrit, 2, 20, False),
+                    "smooth motion (model)": _util(math.log10(max(vcrit, 1e-3)), math.log10(0.1), math.log10(10.0), False),
                     "friction loss (model)": _util(fr, 0.5, 4.0, False),
                     "extrusion margin (model)": _util(allow / gap, 1.0, 3.0),
                     "dry rod / static tightness (judgement)": 8 if rod_k.startswith("PU") else 7,

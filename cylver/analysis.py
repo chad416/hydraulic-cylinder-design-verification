@@ -62,10 +62,11 @@ def run(des: Design, fast: bool = False) -> dict:
     k_oil = (des.A_A**2) / ((pl.V0 + des.A_A * x_mid) / pl.K_ch(y[2]) + pl.V_line / pl.K_ln(y[2]))
     res["k_oil"] = k_oil
     vmin = des.o["speed_min_smooth_mm_s"] * 1e-3
-    res["stick_sim"] = {v: seals.stick_slip_sim(des, v, p_hold, k_oil) for v in sorted({0.5 * vmin, vmin, 2 * vmin, max(3e-3, 2 * res["v_stick_linear"])})}
+    vc = max(res["v_stick_linear"], 1e-4)
+    res["stick_sim"] = {v: seals.stick_slip_sim(des, v, p_hold, k_oil) for v in sorted({0.5 * vc, 2.0 * vc, vmin})}
     rod, pis = seals.seals_of(des)
     res["friction_at_vmax_N"] = seals.total_friction(des, des.o["speed_max_mm_s"] * 1e-3, p_hold, 0.0)
-    res["breakaway_N"] = rod.coulomb(0.0) * rod.p["rs"] + pis.coulomb(p_hold) * pis.p["rs"]
+    res["breakaway_N"] = rod.breakaway(0.0) + pis.breakaway(p_hold)
     res["gap_allow_mm"] = pis.gap_allow(des.p_relief)
     res["drift"] = seals.drift(des, p_hold)
 

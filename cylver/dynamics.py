@@ -151,7 +151,8 @@ class Plant:
         if self.coulomb_on:
             F_f = total_friction(d, v, pA, pB, 1e-4)
         else:  # viscous part only (used for the small-signal model around standstill)
-            F_f = math.pi * 1e3 * (d.d * SEALS[d.g["rod_seal"]]["fv"] + d.D * SEALS[d.g["piston_seal"]]["fv"]) * v
+            fv = lambda k: sum(e["fv"] for e, _ in SEALS[k]["elements"])  # noqa: E731
+            F_f = math.pi * 1e3 * (d.d * fv(d.g["rod_seal"]) + d.D * fv(d.g["piston_seal"])) * v
         F_g = self.F_load  # constant load opposing extension (gravity-type, includes the payload)
         dv = (pA * d.A_A - pB * d.A_B - F_f - F_g + F_stop) / d.mass
         du = (uc - u) / d.g["valve_tau_s"]

@@ -196,21 +196,22 @@ def fig_cushion(des, res, path: Path):
 
 def fig_friction(des, res, path: Path):
     p = res["p_hold_bar"] * 1e5
-    v = np.geomspace(1e-4, 0.5, 300)
+    v = np.geomspace(1e-5, 0.5, 400)
     F = [seals.total_friction(des, vi, p, 0.0, 1e-6) for vi in v]
     fig, ax = plt.subplots(1, 2, figsize=(11, 4.4))
     ax[0].semilogx(v * 1e3, np.array(F) / 1e3, color=C[0], label=f"rod + piston seal friction at {res['p_hold_bar']:.0f} bar")
     vc = res["v_stick_linear"] * 1e3
-    ax[0].axvspan(1e-1, vc, color="#f6dede", zorder=0)
-    ax[0].annotate(f"falling branch: stick-slip below {vc:.1f} mm/s", (0.12, 0.92), xycoords=("data", "axes fraction"), color=INK2, fontsize=8)
+    ax[0].axvspan(1e-2, vc, color="#f6dede", zorder=0)
+    ax[0].annotate(f"falling branch: stick-slip below {vc:.1f} mm/s", (0.012, 0.92), xycoords=("data", "axes fraction"), color=INK2, fontsize=8)
     ax[0].axvline(des.o["speed_min_smooth_mm_s"], color=LIMIT, ls="--", lw=1)
     ax[0].annotate("required smooth speed", (des.o["speed_min_smooth_mm_s"], 0.45), xycoords=("data", "axes fraction"), xytext=(3, 0), textcoords="offset points", color=LIMIT, fontsize=8)
     ax[0].set_xlabel("speed (mm/s)")
     ax[0].set_ylabel("friction (kN)")
-    ax[0].set_title("Stribeck model (assumed seal data, see seals.py)")
+    ax[0].set_title("Seal friction, calibrated to measured data (Sarbu et al. 2024)")
     ax[0].legend(loc="upper center", bbox_to_anchor=(0.5, -0.18))
     for i, (vv, s) in enumerate(sorted(res["stick_sim"].items())):
         ax[1].plot(s["t"], s["v"] / vv, color=C[i % len(C)], lw=1.0, label=f"{vv * 1e3:.1f} mm/s: {'stick-slip' if s['stick'] else ('growing' if s['growth'] > 1.05 else 'smooth')}")
+    ax[1].set_xlim(0, min(s["t"][-1] for s in res["stick_sim"].values()))
     ax[1].set_xlabel("time (s)")
     ax[1].set_ylabel("speed / commanded speed")
     ax[1].set_title("Constant-flow drive, kicked from steady sliding")
@@ -235,7 +236,7 @@ def fig_aoa(trades: list[dict], path: Path):
     fig, axes = plt.subplots(1, len(trades), figsize=(4.2 * len(trades), 3.4))
     for ax, t in zip(np.atleast_1d(axes), trades):
         r = t["result"]
-        names = [a["name"] for a in t["alternatives"]]
+        names = [a["name"] + ("" if a.get("viable", True) else "\n(not viable)") for a in t["alternatives"]]
         ax.barh(names, r["total"], color=C[0], height=0.5)
         for i, (tot, ws) in enumerate(zip(r["total"], r["win_share"])):
             ax.annotate(f"{tot:.1f} ({ws * 100:.0f} %)", (tot, i), xytext=(4, 0), textcoords="offset points", va="center", fontsize=8)

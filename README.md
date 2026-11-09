@@ -14,7 +14,7 @@ It derives the requirements, FMEA and acceptance-test pass limits from those num
 
 The engineering argument, structured as a systems-engineering dossier after Wasson (2016), is in **[docs/DOSSIER.md](docs/DOSSIER.md)** ([PDF](docs/DOSSIER.pdf)). The full calculation reports are [reports/HD-160.md](reports/HD-160.md) and [reports/LD-80.md](reports/LD-80.md).
 
-**Everything here is analysis and simulation.** No cylinder was built or tested. The seal friction data are assumed. The ISO/TS 13725 equations were not available, so the buckling model follows the standard's principles with a classical beam-column FE. See [Limits](#limits).
+**Everything here is analysis and simulation.** No cylinder was built or tested. Seal friction is calibrated to a published test series (two open-access papers); the extrusion-gap limits are still assumed. The ISO/TS 13725 equations were not available, so the buckling model follows the standard's principles with a classical beam-column FE. See [Limits](#limits).
 
 ![tube wall next to the base: the weld moved to the zero-moment point](docs/img/HD-160_revA_junction.png)
 
@@ -26,8 +26,8 @@ The engineering argument, structured as a systems-engineering dossier after Wass
 | static checks (Lamé, base, rod, thread) | pass | pass | pass | pass |
 | first yield / push at relief (buckling) | 1.65 | 1.65 | **0.96** | 1.65 |
 | governing fatigue stress factor | **0.33** (port in tube wall) | 1.09 (base weld) | **0.35** (port in tube wall) | 1.15 (base weld) |
-| cushion chamber peak, 0 °C oil | **445 bar** (relief 280, proof 420) | 324 bar | **462 bar** (relief 220, proof 330) | 273 bar |
-| requirements not met | R-08, R-10, R-12, R-13 | R-12, R-13 | R-07, R-08, R-10, R-12 | R-12 |
+| cushion chamber peak, 0 °C oil | **446 bar** (relief 280, proof 420) | 324 bar | **463 bar** (relief 220, proof 330) | 273 bar |
+| requirements not met | R-08, R-10, R-13 | R-13 (spec issue) | R-07, R-08, R-10 | none |
 | lathe programs via project 07 | | rod end, piston PASS; gland rejected (groove deeper than the 6 mm tool) | | rod end, piston, gland PASS |
 
 1. **The base weld, not the tube, sets the fatigue life.**
@@ -35,17 +35,14 @@ The engineering argument, structured as a systems-engineering dossier after Wass
    - At the original weld position (10 mm from the base face) the HD-160 stress factor is 0.38.
    - Moving the girth weld to where the edge moment changes sign (βx = π/4, 19 mm) gives 1.09 with the same tube.
    - A stronger, thinner 25CrMo4 tube makes it worse (0.53): weld S-N curves do not improve with parent-metal strength.
-2. **The port relief valve does not protect the cushion chamber.** The overrunning load retracts the HD-160 at 0.41 m/s against a 0.20 m/s order speed, and the cap cushion peaks at 445 bar with cold oil. The fix is a system-level interface requirement: limit the retract command. A stronger tube would not fix it.
+2. **The port relief valve does not protect the cushion chamber.** The overrunning load retracts the HD-160 at 0.41 m/s against a 0.20 m/s order speed, and the cap cushion peaks at 446 bar with cold oil. The fix is a system-level interface requirement: limit the retract command. A stronger tube would not fix it.
 3. **Buckling margins depend on the clearances, not only on the rod.**
    - Rod-only Euler says LD-80 rev A is at 0.82 × the push, and the elastic stepped column says 1.28 ×. With the rod tilt allowed by the bearing clearances, bow, pin eccentricity and self weight, first yield is at 0.96 ×.
    - A 56 mm rod peaks at 1.33 × near a 100 mm stop tube; longer stop tubes make it worse.
    - A 63 mm rod with a 50 mm stop tube reaches 1.65 ×.
-4. **Two order requirements cannot be met as written.**
-   - Smooth motion at 10 mm/s needs a seal static/Coulomb friction ratio ≤ 1.06 (with the assumed seal data).
-   - The 5 mm / 10 min drift limit is used up by 4.4 K of oil cooling in the locked HD-160 cap chamber; the order gives no thermal condition.
-
-   Both go back to the customer as specification issues.
-5. **The dynamic model reproduces the textbook results it should.** The model's natural frequency equals the oil-column formula (11.7 Hz at mid stroke, HD-160). As the valve gets fast, its position-loop gain limit converges to Merritt's K_v < 2ζω_h (to 0.90-0.95 ×; the rest is the single-rod asymmetry). With a critical-centre valve and tight seals, ζ ≈ 0.001-0.005, so a closed loop needs added damping.
+4. **One order requirement cannot be met as written.** The 5 mm / 10 min drift limit is used up by 4.4 K of oil cooling in the locked HD-160 cap chamber, and the order gives no thermal condition. It goes back to the customer.
+5. **Calibrate before concluding.** With assumed seal data, smooth motion at 10 mm/s looked infeasible (stick-slip onset 12 mm/s). Calibrated to measured seal friction (Sârbu et al., *Polymers* 2022 and 2024), the onset is 1.8 mm/s and the requirement is met. The calibrated model predicts the papers' measured onsets conservatively, within about 2 ×.
+6. **The dynamic model reproduces the textbook results it should.** The model's natural frequency equals the oil-column formula (11.7 Hz at mid stroke, HD-160). As the valve gets fast, its position-loop gain limit converges to Merritt's K_v < 2ζω_h (to 0.90-0.95 ×; the rest is the single-rod asymmetry). With a critical-centre valve and tight seals, ζ ≈ 0.001-0.005, so a closed loop needs added damping.
 
 ## How it works
 
@@ -73,7 +70,7 @@ data/orders/*.json  ->  size tube (Lamé) and base (plate)  ->  analyses:
 
 ## Tests
 
-`python -m pytest`: 24 tests. Each model is checked against an independent closed form or a published worked example:
+`python -m pytest`: 26 tests. Each model is checked against an independent closed form or a published worked example:
 - **Buckling FE:**
   - Euler for four end conditions (0.2 %);
   - the exact two-segment stepped-column equation;
@@ -89,7 +86,7 @@ data/orders/*.json  ->  size tube (Lamé) and base (plate)  ->  analyses:
   - loop gain converging to Merritt's rule;
   - cushion needle trade;
   - relief not protecting the cushion.
-- **Seals:** stick-slip simulation agreeing with the linear criterion; thermal drift by hand.
+- **Seals:** the calibrated model against the measured stick-slip onsets (PTFE, PU); stick-slip simulation agreeing with the linear criterion; thermal drift by hand.
 - **Design decisions:** the LD-80 buckling iteration and the HD-160 fatigue fix.
 - **Acceptance evaluator:** catches a sticky seal set.
 - **CNC hand-off:** accepted by project 07.
@@ -109,7 +106,7 @@ The CNC hand-off looks for project 07 next to this folder, or at `CNCGEN_ROOT`.
 ## Limits
 
 - **Simulation only.** The acceptance procedure is written so that passing it would also validate the models; that has not happened.
-- **Seal friction and extrusion values are assumed.** ISO 10100 module F would measure them.
+- **Seal friction comes from one published test series.** The viscous terms and the extrusion-gap limits are assumed. ISO 10100 module F on the real cylinder would measure them.
 - **Buckling follows the principles of ISO/TS 13725, not its equations.** The 1.5 × first-yield target is this project's choice.
 - **Base-junction bending uses thin-shell theory with a rigid base.** It is at the edge of its validity for rm/t = 4-9. The zero-moment weld position should be confirmed by axisymmetric FE or strain gauges.
 - **Material values are from memory or secondary summaries.** They are marked `checked: false` in `data/materials.json`.

@@ -21,32 +21,15 @@ from scipy.optimize import curve_fit
 
 from . import seals
 from .model import Design
-from .seals import SEALS, Seal
+from .seals import FS_SCALE, Seal
 
 
-def rs_limit(des: Design, p_hold: float) -> float:
-    """Largest common static/Coulomb ratio for both seals at which stick-slip onset stays at or below
-    the order's smooth-motion speed."""
-    vmin = des.o["speed_min_smooth_mm_s"] * 1e-3
-    keep = {k: dict(v) for k, v in SEALS.items()}
-    kinds = {des.g["rod_seal"], des.g["piston_seal"]}
-
-    def vcrit(rs):
-        for k in kinds:
-            SEALS[k]["rs"] = rs
-        return seals.stick_slip_linear(des, p_hold)
-
-    try:
-        lo, hi = 1.0, 5.0
-        if vcrit(hi) <= vmin:
-            return hi
-        for _ in range(40):
-            mid = 0.5 * (lo + hi)
-            lo, hi = (mid, hi) if vcrit(mid) <= vmin else (lo, mid)
-        return lo
-    finally:
-        for k in kinds:
-            SEALS[k].update(keep[k])
+def onset_from_fit(Fc: float, dFs: float, vs: float, fv: float) -> float:
+    """Stick-slip onset (m/s) of a fitted Stribeck curve: highest speed with dF/dv < 0."""
+    v = np.geomspace(1e-6, 0.5, 6000)
+    slope = -dFs * 2 * v / vs**2 * np.exp(-((v / vs) ** 2)) + fv
+    neg = np.nonzero(slope < 0)[0]
+    return 0.0 if len(neg) == 0 else float(v[min(neg[-1] + 1, len(v) - 1)])
 
 
 def procedure(res: dict) -> list[dict]:
@@ -54,7 +37,6 @@ def procedure(res: dict) -> list[dict]:
     p_hold = res["p_hold_bar"] * 1e5
     p_proof = d.proof_factor * max(d.p_rated, d.p_relief) / 1e5
     vm_proof = next(r for r in res["static"] if r["item"].startswith("tube bore von Mises, proof"))
-    rs_max = rs_limit(d, p_hold)
     rod, pis = seals.seals_of(d)
     F_s = res["breakaway_N"]
     gov = res["fatigue_gov"]
@@ -68,9 +50,10 @@ def procedure(res: dict) -> list[dict]:
          "limit": (f"<= {res['drift']['q_leak_budget_ml_min']:.2f} ml/min" if res["drift"]["q_leak_budget_ml_min"] > 0 else "no budget left: thermal contraction alone uses the R-13 allowance (open with the customer)"),
          "why": "the share of the R-13 drift budget left after thermal contraction"},
         {"step": "F-1", "module": "ISO 10100 sec. 10.6.2", "what": "static (breakaway) friction, unloaded",
-         "limit": f"<= {1.3 * (rod.coulomb(0) * rod.p['rs'] + pis.coulomb(0) * pis.p['rs']):.0f} N (1.3 x model)", "why": "the friction the speed and smoothness analyses assumed (R-01, R-12)"},
-        {"step": "F-2", "module": "ISO 10100 sec. 10.4.2", "what": "friction at constant speed, both directions, 5-200 mm/s; fit the Stribeck model",
-         "limit": f"fitted static/Coulomb ratio <= {rs_max:.2f}", "why": f"above this ratio stick-slip starts above {d.o['speed_min_smooth_mm_s']:g} mm/s (R-12)"},
+         "limit": f"<= {1.3 * (rod.breakaway(0) + pis.breakaway(0)):.0f} N (1.3 x model)", "why": "the friction the speed and smoothness analyses assumed (R-01, R-12)"},
+        {"step": "F-2", "module": "ISO 10100 sec. 10.4.2", "what": "friction at constant speed, both directions, 0.1-100 mm/s; fit the Stribeck model",
+         "limit": f"stick-slip onset of the fitted curve <= {d.o['speed_min_smooth_mm_s']:g} mm/s (model: {res['v_stick_linear'] * 1e3:.1f} mm/s)",
+         "why": "R-12; and it validates the seal model. An unloaded rig sees only the low-pressure static excess: run it with back pressure at the holding pressure if the rig allows"},
         {"step": "C-1", "module": "project test (not in ISO 10100)", "what": "run into both ends at full speed, 0 C and 40 C oil; record the cushion chamber pressure",
          "limit": f"peak <= {p_proof:.0f} bar; impact <= 0.10 m/s", "why": "R-10, R-11 (needs a transducer in the cushion chamber, not at the port)"},
         {"step": "Q-1", "module": "ISO 10771-1 Annex B (type test, once per design)", "what": "cyclic pressure test 0 -> p_test, 1e6 cycles",
@@ -79,47 +62,41 @@ def procedure(res: dict) -> list[dict]:
     ]
 
 
-def stribeck(v, Fc, rs, vs, fv):
-    return Fc * (1 + (rs - 1) * np.exp(-((v / vs) ** 2))) + fv * v
+def stribeck(v, Fc, dFs, vs, fv):
+    return Fc + dFs * np.exp(-((v / vs) ** 2)) + fv * v
 
 
-def bench_data(des: Design, seed: int = 1, scale_rs: float = 1.0) -> dict:
-    """SYNTHETIC module F data: the seal model at 5-200 mm/s, unloaded (pressure only to overcome
-    friction), with 1 % + 10 N measurement noise. scale_rs lets a test show a 'bad' seal set."""
+def bench_data(des: Design, seed: int = 1, scale_fs: float = 1.0, scale_vs: float = 1.0) -> dict:
+    """SYNTHETIC module F data: the calibrated seal model, unloaded, 0.1-100 mm/s, with 1 % + 5 N noise.
+    scale_fs / scale_vs multiply the static excess / Stribeck speed so a test can show a 'sticky' seal set."""
     rng = np.random.default_rng(seed)
-    v = np.array([5, 7, 10, 15, 20, 30, 50, 80, 120, 200]) * 1e-3
-    rod, pis = Seal(des.g["rod_seal"], des.d), Seal(des.g["piston_seal"], des.D)
-    F = []
-    for vi in v:
-        f = 0.0
-        for s in (rod, pis):
-            fc = s.coulomb(0)
-            rs = 1 + (s.p["rs"] - 1) * scale_rs
-            f += fc * (1 + (rs - 1) * math.exp(-((vi / s.p["vs"]) ** 2))) + math.pi * s.d * 1e3 * s.p["fv"] * vi
-        F.append(f)
-    F = np.array(F)
-    F_meas = F * (1 + 0.01 * rng.standard_normal(len(F))) + 10 * rng.standard_normal(len(F))
-    # breakaway: model static friction with noise
-    Fs = sum(s.coulomb(0) * (1 + (s.p["rs"] - 1) * scale_rs) for s in (rod, pis))
+    v = np.array([0.1, 0.15, 0.2, 0.3, 0.5, 0.8, 1.2, 2, 5, 10, 30, 100]) * 1e-3
+    rod, pis = seals.seals_of(des)
+    FS_SCALE["k"], FS_SCALE["v"] = scale_fs, scale_vs
+    try:
+        F = np.array([rod.force(vi, 0.0, 1e-9) + pis.force(vi, 0.0, 1e-9) for vi in v])
+        Fs = rod.breakaway(0.0) + pis.breakaway(0.0)
+    finally:
+        FS_SCALE["k"], FS_SCALE["v"] = 1.0, 1.0
+    F_meas = F * (1 + 0.01 * rng.standard_normal(len(F))) + 5 * rng.standard_normal(len(F))
     return {"v": v, "F": F_meas, "F_true": F, "breakaway": Fs * (1 + 0.01 * rng.standard_normal()), "synthetic": True}
 
 
 def evaluate(des: Design, data: dict, res: dict) -> dict:
     """Fit the Stribeck model to the bench data and judge F-1 / F-2."""
-    p0 = [data["F"][-3], 1.5, 0.01, 1000.0]
-    popt, _ = curve_fit(stribeck, data["v"], data["F"], p0=p0, bounds=([0, 1.0, 1e-4, 0], [1e6, 5.0, 0.2, 1e6]), maxfev=20000)
-    Fc, rs, vs, fv = popt
-    rs_fit = data["breakaway"] / Fc  # breakaway measured directly is the better estimate of the static level
+    p0 = [data["F"][-3], 0.2 * data["F"][-3], 5e-4, 100.0]
+    popt, _ = curve_fit(stribeck, data["v"], data["F"], p0=p0, bounds=([0, 0, 1e-5, 0], [1e6, 1e5, 0.05, 1e6]), maxfev=20000)
+    Fc, dFs, vs, fv = popt
     rod, pis = seals.seals_of(des)
-    F1_lim = 1.3 * (rod.coulomb(0) * rod.p["rs"] + pis.coulomb(0) * pis.p["rs"])
-    rs_max = rs_limit(des, res["p_hold_bar"] * 1e5)
+    F1_lim = 1.3 * (rod.breakaway(0) + pis.breakaway(0))
+    onset = onset_from_fit(Fc, dFs, vs, fv) * 1e3
+    vmin = des.o["speed_min_smooth_mm_s"]
     return {
         "Fc_N": Fc,
-        "rs_curve": rs,
-        "rs_breakaway": rs_fit,
+        "dFs_N": dFs,
         "vs_mm_s": vs * 1e3,
         "fv_Ns_per_m": fv,
         "F1": {"value": data["breakaway"], "limit": F1_lim, "pass": data["breakaway"] <= F1_lim},
-        "F2": {"value": rs_fit, "limit": rs_max, "pass": rs_fit <= rs_max},
+        "F2": {"value": onset, "limit": vmin, "pass": onset <= vmin},
         "synthetic": data.get("synthetic", False),
     }
