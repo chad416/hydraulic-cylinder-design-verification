@@ -1,4 +1,4 @@
-"""Export docs/DOSSIER.md to docs/DOSSIER.pdf (Markdown -> HTML -> headless Edge/Chrome print).
+"""Export DOSSIER.md to DOSSIER.pdf (Markdown -> HTML -> headless Edge/Chrome print).
 
     pip install markdown
     python tools/export_pdf.py [--browser PATH]
@@ -29,7 +29,7 @@ img { max-width: 100%; } blockquote { color: #52514e; border-left: 3px solid #cc
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--src", default=str(ROOT / "docs" / "DOSSIER.md"))
+    ap.add_argument("--src", default=str(ROOT / "DOSSIER.md"))
     ap.add_argument("--browser", default=None)
     a = ap.parse_args()
     src = Path(a.src)

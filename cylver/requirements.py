@@ -27,7 +27,8 @@ def derive(res: dict) -> list[dict]:
     R = []
 
     def add(rid, text, source, method, value, limit, ok, note=""):
-        R.append({"id": rid, "text": text, "source": source, "method": method, "value": value, "limit": limit, "status": "met" if ok else "NOT MET", "note": note})
+        status = "open" if ok is None else ("met" if ok else "NOT MET")
+        R.append({"id": rid, "text": text, "source": source, "method": method, "value": value, "limit": limit, "status": status, "note": note})
 
     v_ach = speed_achieved(res) * 1e3
     add("R-01", f"The cylinder shall extend at >= {0.95 * o['speed_max_mm_s']:.0f} mm/s against {o['load_extend_kN']:g} kN with full valve command.",
@@ -56,4 +57,9 @@ def derive(res: dict) -> list[dict]:
         f"thermal {dr['dx_thermal_mm']:.1f} mm for {dr['dT_cool_K']:g} K cooling", f"<= {dr['allow_mm']:g} mm", dr["dx_thermal_mm"] <= dr["allow_mm"],
         f"the requirement holds only while the locked oil cools < {dr['dT_max_K']:.1f} K in 10 min; the order must state the thermal condition")
     add("R-14", "The lowest hydraulic natural frequency over the stroke shall be reported to the machine builder (TPM).", "Wasson ch. 21.8 TPM", "A", f"{f_min:.1f} Hz", "report", True)
+    series = "ISO 6022 (25 MPa series)" if d.p_rated <= 250e5 else "none (above the ISO 6022 series)"
+    add("R-15", f"Where the order names an ISO mounting, the mounting interface dimensions shall comply with {series}.",
+        "ISO 6022 / ISO 6020-2; ISO/TS 13725 applies to cylinders conforming to ISO 6020, ISO 6022, ISO 10762", "I (dimensional inspection)",
+        "pin-to-pin dimensions from the order file", "standard's tables", None,
+        "the dimension tables are in the paid standard and were not available; the example orders give their own pin dimensions")
     return R

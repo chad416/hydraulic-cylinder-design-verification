@@ -1,0 +1,4 @@
+{
+  "_note": "Tooling the verified designs need beyond the base library of the CNC part-family generator (project 07). Applied by cylver/cnc_bridge.py only to parts that need it; project 07 itself is not changed. Illustrative values, not a tool maker's catalogue.",
+  "heavy_internal_grooving": {"number": 5, "kind": "groove_int", "desc": "ID GROOVE W3 HEAVY BAR", "width": 3.0, "vc": 90, "f": 0.04, "min_bore": 60.0, "max_depth": 10.0}
+}

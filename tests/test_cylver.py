@@ -46,6 +46,19 @@ def test_junction_edge_moment_and_zero_point():
     assert stress.junction_bending(p, ri, ro, nu, xz)["bending"] == pytest.approx(0.0, abs=1e-6 * j0["bending"])
 
 
+def test_axisymmetric_fe_confirms_shell_solution():
+    # independent continuum model (flexible base, no thin-shell assumption) against the shell formula
+    from cylver import axisym
+
+    d = design("HD-160", 1)
+    c = axisym.compare(d)
+    fe = c["fe"]
+    j0 = stress.junction_bending(1.0, d.ri, d.ro, d.tube.nu, 0.0)
+    assert fe["membrane"][-5:].mean() == pytest.approx(j0["membrane"], rel=1e-3)
+    assert abs(fe["bending"][0]) == pytest.approx(j0["bending"], rel=0.05)
+    assert c["zero_fe_mm"] == pytest.approx(c["zero_shell_mm"], rel=0.03)
+
+
 def test_thread_stress_area_iso898():
     # ISO 898-1 tabulated stress area for M20 coarse (P 2.5) is 245 mm^2
     assert stress.thread_stress_area(0.020, 0.0025) * 1e6 == pytest.approx(245, abs=1)

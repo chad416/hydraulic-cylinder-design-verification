@@ -95,7 +95,12 @@ def fig_junction(des, res, path: Path):
     xw = des.mm("base_weld_offset_mm")
     x0 = math.pi / (4 * jb["beta"])
     fig, ax = plt.subplots(figsize=(6.5, 3.4))
-    ax.plot(xs * 1e3, tot, color=C[0], label="longitudinal surface stress, membrane + edge bending")
+    ax.plot(xs * 1e3, tot, color=C[0], label="shell theory, rigid base (membrane + edge bending)")
+    from .axisym import junction_fe
+
+    fe = junction_fe(des)
+    m = fe["z"] <= 0.12
+    ax.plot(fe["z"][m] * 1e3, fe["total"][m] * p / 1e6, color=C[1], ls="--", label="axisymmetric FE, flexible base (linearised)")
     ax.axhline(jb["membrane"] * p / 1e6, color=C[2], ls=":", label="membrane only")
     ax.axvline(xw * 1e3, color=C[1], lw=1.2)
     ax.annotate(f"weld at {xw * 1e3:.0f} mm", (xw * 1e3, 0.92), xycoords=("data", "axes fraction"), xytext=(4, 0), textcoords="offset points", color=INK2)

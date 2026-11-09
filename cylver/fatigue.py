@@ -8,7 +8,7 @@
   corrected for mean stress by Goodman, safety factor j on stress.
 - Rod thread at the piston nut: endurance sigma_ASV = 0.85 (150/d + 45) MPa at 2e6 cycles, slope 3
   (VDI 2230-1, threads rolled before heat treatment), with the preloaded-joint load factor phi_n.
-Sources and their check status are listed in data/materials.json and docs/DOSSIER.md section 9.
+Sources and their check status are listed in data/materials.json and DOSSIER.md section 13.
 """
 
 from __future__ import annotations
@@ -113,6 +113,9 @@ def locations(des: Design, mats: dict | None = None) -> list[dict]:
     _, st, _ = lame(1.0, ri, ro, ri)
     xw = des.mm("base_weld_offset_mm")
     jb = junction_bending(1.0, ri, ro, des.tube.nu, xw)
+    from .axisym import weld_stress_per_pa
+
+    k_weld = weld_stress_per_pa(des)[0] if des.g.get("junction_model", "fe") == "fe" else jb["total"]
     th = des.g["rod_thread"]
     d_th = th["d_mm"] * 1e-3
     a_s = thread_stress_area(d_th, th["pitch_mm"] * 1e-3)
@@ -128,9 +131,9 @@ def locations(des: Design, mats: dict | None = None) -> list[dict]:
         {
             "loc": "tube-to-base weld",
             "chamber": "A",
-            "k_per_Pa": jb["total"],
+            "k_per_Pa": k_weld,
             "sn": SN("weld", cat, ff["gamma_Mf_weld"]),
-            "basis": f"membrane + edge bending at {xw * 1e3:.0f} mm from the base, EN 1993-1-9 cat {cat / 1e6:.0f}",
+            "basis": f"structural stress at {xw * 1e3:.0f} mm from the base by axisymmetric FE ({k_weld:.2f} x p; rigid-base shell solution {jb['total']:.2f} x p), EN 1993-1-9 cat {cat / 1e6:.0f}",
         },
         {
             "loc": "port A cross-bore",

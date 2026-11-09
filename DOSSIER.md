@@ -14,7 +14,9 @@ Author: Chander Vinayak Sharma, 9 Nov 2026. Status: analysis and simulation only
 
 1. **Fatigue at the tube-to-base weld.** The flat base stops the tube from expanding, which bends the wall next to it. At the original weld position, 10 mm from the base face, this raises the longitudinal stress to 2.2 × the membrane value (HD-160).
     - Rev A fatigue stress factor: **0.38** for the required 4 × 10^5 duty cycles.
-    - Moving the girth weld to the point where the edge moment changes sign (βx = π/4, 19 mm from the base face) gives **1.09** with the same tube.
+    - Moving the girth weld to the point where the edge moment changes sign (βx = π/4, 19 mm from the base face) gives **1.03** with the same tube.
+    - The finding was checked with an independent axisymmetric finite-element model of tube and base, with a base free to rotate and no thin-shell assumption. It puts the zero-moment point at 18.9 mm against 19.0 mm from the shell formula, and the edge bending within 1.5 %.
+    - At the weld the FE structural stress is 6 % above the shell value, so the design uses the FE value. The shell formula alone would have given 1.09.
     - Thickening the tube instead works poorly. In a design-exploration run (not in the report), a 25 mm wall, 2.2 × thicker, still gave only 0.81 with the weld left at 10 mm.
 2. **The cushion chamber is not protected by the port relief valve.** With an overrunning load and cold oil, the cap cushion reached **446 bar** against a 280 bar relief and a 420 bar proof pressure (HD-160 rev A).
     - That peak is also what drives the weld and port fatigue damage.
@@ -35,7 +37,7 @@ The verified designs meet every other requirement: HD-160 rev B misses only the 
 
 LD-80 rev C also takes the PTFE seal system that its own trade study picked in 100 % of weight sets.
 
-The parts are handed to the CNC part-family generator (project 07), which generates and verifies the lathe programs. For LD-80 rev C, 07 accepts and verifies all three parts. For HD-160 rev B, it rejects the gland: its internal grooving tool reaches 6 mm and the wiper groove is 6.15 mm deep.
+The parts are handed to the CNC part-family generator (project 07), which generates and verifies the lathe programs. For LD-80 rev C, 07 accepts and verifies all three parts. For HD-160 rev B, the gland's internal grooves (7.4 mm deep) need a heavier internal grooving bar than 07's base library has (6 mm reach). The bridge adds that bar to the tool library as a tooling requirement, without changing 07, and all three parts then pass.
 
 ---
 
@@ -99,7 +101,7 @@ Wasson separates *phases* of the life cycle (Section 7.3, p. 150), *modes* the u
 **How they are derived** (Section 21.4, p. 436). Every requirement comes from one of three places:
 
 - an order clause (force, speed, pressure, duty, drift, smooth speed);
-- a standard's method (ISO 10100 acceptance modules, the ISO/TS 13725 approach to buckling, EN 1993-1-9 weld fatigue);
+- a standard's method (ISO 10100 acceptance modules, the ISO/TS 13725 approach to buckling, EN 1993-1-9 weld fatigue, ISO 6022 / ISO 6020-2 mounting interfaces; ISO/TS 13725 applies to cylinders that conform to ISO 6020, ISO 6022 and ISO 10762);
 - a derived need found by analysis, for example "the cushion chamber is not protected by the relief, so its peak needs its own requirement".
 
 Each requirement follows Principle 22.5 (p. 449): subject, *shall*, action, outcome, bound. Each names its verification method (Principle 22.4, p. 448). The methods are Wasson's Inspection, Examination, Analysis, Demonstration and Test (Principle 13.10, p. 280). Where the order is silent on conditions (oil temperature, the thermal state during holding), Principle 19.20 (p. 407) on environmental conditions applies and the gap is reported.
@@ -113,13 +115,14 @@ Each requirement follows Principle 22.5 (p. 449): subject, *shall*, action, outc
 | R-05 | base junction ≤ 2 Re (PL+Pb+Q, shakedown) | ASME VIII-2 Part 5 categories | A | met | met |
 | R-06 | rod thread ≤ Re/2 at relief pull | ISO 898-1 | A | met | met |
 | R-07 | first yield at full extension ≥ 1.5 × push at relief | ISO/TS 13725 approach; 1.5 = project target | A | met (1.65) | met (1.65) |
-| R-08 | every fatigue location survives the required duty cycles | order duty; S-N sources | A; T (ISO 10771-1) | met (1.09, weld) | met (1.15, weld) |
+| R-08 | every fatigue location survives the required duty cycles | order duty; S-N sources | A (axisymmetric FE at the weld); T (ISO 10771-1) | met (1.03, weld) | met (1.10, weld) |
 | R-09 | piston-seal extrusion gap ≤ allowable | seal makers' gap charts (values assumed, tables not retrieved) | A; I | met | met |
 | R-10 | cushion peak ≤ proof pressure, 0-40 °C | derived (relief does not protect the cushion) | A; T | met (324 / 420 bar) | met (273 / 330 bar) |
 | R-11 | end-stop impact ≤ 0.10 m/s | project target | A; T | met (0.080) | met (0.090) |
 | R-12 | no stick-slip down to v_min | order; seal data from Sârbu et al. 2022/2024 | A; T (ISO 10100 module F) | met (onset 1.8 mm/s) | met (onset 1.8 mm/s) |
 | R-13 | drift ≤ 5 mm / 10 min | order | A; T (ISO 10100 module P) | **not met** (4.4 K cooling uses it up) | met only below 5.9 K cooling |
 | R-14 | lowest natural frequency reported | TPM (Section 21.8, p. 442) | A | 11.0 Hz | 11.1 Hz |
+| R-15 | mounting interface per ISO 6022 (25 MPa series) where the order names an ISO mounting | ISO 6022 / ISO 6020-2 | I | **open**: tables in the paid standard | **open** |
 
 The full statements, results and limits for every revision are in `reports/HD-160.md` and `reports/LD-80.md`. Traceability runs both ways (Principle 19.13, p. 402; Section 21.7, p. 439):
 
@@ -214,7 +217,7 @@ Each score is marked **model** (computed by `cylver`) or **judgement** (rational
 |---|---|---|---|
 | Seal system | PTFE step seal + PU tandem, PTFE piston seal | HD-160: the PU system is **not viable** (extrusion margin 0.90 < 1, R-09), so it is screened out before scoring (Wasson's viable-alternative rule, p. 683). LD-80: PTFE wins 81 % of weight sets; no ±10 % weight change flips it | **model (measured-data seals):** stick-slip onset 1.8 vs 2.3 mm/s, so both are smooth at 10 mm/s; lower friction and a larger extrusion margin for PTFE. These outweigh the judgement criteria (dry rod, contamination, cost) that favour PU. |
 | Rod surface | HVOF WC-CoCr (65 % of weight sets) ahead of laser cladding (24 %); hard chrome last (6 %) | no ±10 % flip, but **all scores are judgement**, so the ranking is only as good as the scores | the regulatory criterion: Cr(VI) restriction dossier submitted 11 Apr 2025, opinions pending (news source, section 13). Coupon tests (salt spray ISO 9227, abrasion) would replace the judgement scores. |
-| Tube material | E355 +SR | wins 100 % of weight sets | **model:** the stronger 25CrMo4 tube is sized thinner (7.5 mm instead of 11.25 mm), so its *weld* fatigue factor drops from 1.09 to 0.53. Higher strength does not help a weld. |
+| Tube material | E355 +SR | wins 100 % of weight sets | **model:** the stronger 25CrMo4 tube is sized thinner (7.5 mm instead of 11.25 mm), so its *weld* fatigue factor drops from 1.03 to 0.54 (LD-80: 1.10 to 0.80). Higher strength does not help a weld. |
 
 The tube trade is the useful lesson. A static-strength argument picks the stronger steel. The fatigue model picks the stock tube, because the governing location is a weld and weld S-N curves do not improve with parent-metal strength (EN 1993-1-9 detail categories are independent of grade).
 
@@ -227,7 +230,8 @@ The tube trade is the useful lesson. A static-strength argument picks the strong
 | Model | Fidelity | Verified against (test in `tests/test_cylver.py`) | Not modelled |
 |---|---|---|---|
 | Lamé, plates | closed form, linear elastic | thin-wall limit; radial equilibrium | plasticity, autofrettage |
-| base-junction edge bending | thin-shell beam-on-elastic-foundation | closed-form edge moment; zero at βx = π/4 | base rotation (real base is not rigid), weld geometry; rm/t 4-9 is near the theory's limit |
+| base-junction edge bending | thin-shell beam-on-elastic-foundation, rigid base | closed-form edge moment; zero at βx = π/4 | base rotation; rm/t 4-9 is near the theory's limit (both checked by the FE row below) |
+| base junction, continuum | axisymmetric FE (`axisym.py`): Q4 elements, 2x2 Gauss, tube wall 8 elements thick, base plate meshed, about 1500 elements; through-wall linearised stress | membrane far from the base equals the thick-wall value exactly; edge bending within 1.5 % of the shell formula; zero-moment point 18.9 vs 19.0 mm (HD-160) and 8.8 vs 8.9 mm (LD-80); at the chosen welds 5-6 % above the shell value, which the fatigue check now uses | weld geometry and residual stress (covered by the weld detail category); the sharp corner itself (singular, not used) |
 | buckling | Euler-Bernoulli FE, 160 elements, geometric stiffness, P-δ with imperfections | Euler for 4 end conditions (0.2 %); exact two-segment equation (0.2 %); secant formula and 1/(1-P/Pcr) amplification (1 %) | the ISO/TS 13725 equations themselves; shear; spherical-bearing friction; rod-in-tube contact beyond the two bearings |
 | rainflow / Miner | ASTM E1049 three-point | the standard's worked example, exact counts | sequence effects; mean stress for welds (deliberately ignored, as in EN 1993-1-9) |
 | dynamic model | lumped: 2 chambers + 2 lines + valve lag, orifice edges, cushions, Stribeck friction, stiff stops | natural frequency = oil-column formula (2 %); loop-gain limit converges to Merritt's K_v < 2ζω_h as the valve gets fast (to 0.90-0.95 ×, the remainder from the asymmetric areas); cushion monotonic in needle size | line dynamics (waves), pump flow limit, valve spool forces, temperature rise, cavitation details, dissolved-air release |
@@ -263,11 +267,11 @@ FMEA with RPN = S × O × D (Wasson eq. 34.41, p. 765, after Dhillon). Occurrenc
 | piston-nut thread fatigue | 6.5 | 2 | 160 |
 | piston-seal extrusion | 1.41 | 5 | 150 |
 
-For rev B, the occurrence drops for three rows. The weld goes from O = 9 to 7 (margin 1.09), the port from 9 to 2 (margin 3.25) and the cushion from 9 to 5 (margin 1.30). The top of the rev B ranking is:
+For rev B, the occurrence drops for three rows. The weld goes from O = 9 to 7 (margin 1.03), the port from 9 to 2 (margin 3.25) and the cushion from 9 to 5 (margin 1.30). The top of the rev B ranking is:
 
 | Failure mode | Margin | O | RPN |
 |---|---|---|---|
-| base weld fatigue | 1.09 | 7 | 490 |
+| base weld fatigue | 1.03 | 7 | 490 |
 | drift | 0.89 | 9 | 315 |
 | buckling | 1.65 | 3 | 180 |
 | cushion over-pressure | 1.30 | 5 | 160 |
@@ -323,9 +327,9 @@ The verified design produces the rows that project 07 (`cnc-part-family-generato
 |---|---|---|
 | rod end | PASS | PASS |
 | piston | PASS | PASS |
-| gland | rejected: wiper groove 6.15 mm > 6 mm internal-grooving tool limit | PASS |
+| gland | PASS with a heavy internal grooving bar (10 mm reach; grooves 7.4 mm deep) | PASS |
 
-The rejection is useful feedback. Either a deeper internal grooving bar goes into the tool library, or the large-rod gland gets a different seal cross-section.
+The first run rejected the HD-160 gland: 07's base tool library reaches 6 mm with its internal grooving bar. That is a tooling requirement derived from the design, not a part to redesign. `data/cnc_tooling.json` adds the heavier bar, and the bridge uses it only for parts that need it; 07 itself is unchanged.
 
 ---
 
@@ -335,10 +339,11 @@ The rejection is useful feedback. Either a deeper internal grooving bar goes int
 |---|---|---|---|---|---|
 | tube OD / rod (mm) | 182.5 / 100 | 182.5 / 100 | 90 / 50 | 90 / 63 | 90 / 63 |
 | buckling (first yield / push at relief) | 1.65 | 1.65 | **0.96** | 1.65 | 1.65 |
-| governing fatigue stress factor | **0.33** (port in tube) | 1.09 (weld) | **0.35** (port in tube) | **0.39** (port in tube) | 1.15 (weld) |
+| governing fatigue stress factor | **0.33** (port in tube) | 1.03 (weld, FE) | **0.35** (port in tube) | **0.39** (port in tube) | 1.10 (weld, FE) |
 | cushion peak (bar), 0-40 °C | **446** | 324 | **463** | **411** | 273 |
 | requirements not met | R-08, R-10, R-13 | R-13 | R-07, R-08, R-10 | R-08, R-10, R-11 | none |
-| CNC hand-off (project 07) | - | gland rejected (tool depth) | - | - | 3 / 3 PASS |
+| open (needs a paid standard) | R-15 | R-15 | R-15 | R-15 | R-15 |
+| CNC hand-off (project 07) | - | 3 / 3 PASS (gland with heavy grooving bar) | - | - | 3 / 3 PASS |
 
 ---
 
@@ -348,7 +353,7 @@ The rejection is useful feedback. Either a deeper internal grooving bar goes int
 - **Seal friction is calibrated to one published test series** (two 60 mm coaxial seals, PTFE and PU, 0-160 bar, Sârbu et al. 2022/2024). The viscous coefficients are still assumed, and the PU U-cup uses PU coaxial-seal data. **The extrusion-gap limits are still assumed:** the seal makers' tables could not be retrieved. Module F on the real cylinder would replace all of these.
 - **ISO/TS 13725 equations were not available.** The buckling model follows the standard's published principles (geometric model, off-axis load, own weight, fully extended) with a classical beam-column FE. The first-yield criterion and the 1.5 target are this project's choices.
 - **Material values are from memory or secondary summaries** (marked `checked: false` in `data/materials.json`). E355 +SR uses 450 / 580 MPa from a mill catalogue summary; a recalled 520 / 640 was not confirmed and is not used.
-- **The edge-bending solution assumes a rigid base** and thin-shell theory. At rm/t = 4-9 that is at the edge of its validity. A real base rotates a little, which lowers the bending. The zero-moment weld position should be confirmed by an axisymmetric FE model or strain gauges on the type-test unit.
+- **Base junction:** the shell solution is now checked by an axisymmetric FE model, which agrees on the zero-moment point to 0.1 mm. Both are linear elastic and homogeneous. Weld geometry and residual stress are covered only by the weld detail category, so strain gauges near the weld on the type-test unit remain the hardware check (OPEN_ITEMS O-7).
 - **The port Kt of 3** is a typical cross-bore value (assumed). Ports in end blocks are modelled as Kt × pressure. Peaks above Rm with the elastic Kt are reported as static failures, not given a fatigue life.
 - **The duty cycle is a design duty cycle** (extend with a mid-stroke stop, hold, retract, hold) invented for the example. The real spectrum must come from the customer or from measurement.
 - **The pump is an ideal pressure source.** Line wave dynamics are not modelled, and air is treated as free (conservative at high pressure).
@@ -389,3 +394,26 @@ The rejection is useful feedback. Either a deeper internal grooving bar goes int
 | S20 | ASME BPVC Section VIII Division 2, Part 5 (design by analysis) | stress categories Pm / Pb / PL+Pb+Q and the 2 Re shakedown limit | not re-checked |
 | S21 | ASTM D341 | viscosity-temperature (Walther) | not re-checked; test: VG 46 = 46 cSt at 40 C by construction |
 | S22 | ISO 3320 | preferred bores and rods | not re-checked (values only used as a list) |
+
+## 14. Decision log
+
+Each decision names the evidence it rests on (Wasson Principle 32.5, p. 697: an undocumented trade study is only opinion). "Report" means `reports/HD-160.md` or `reports/LD-80.md`.
+
+| # | Decision | Alternatives considered | Evidence |
+|---|---|---|---|
+| D-01 | Buckling criterion: first yield with clearance tilt, bows, eccentricity and self weight ≥ 1.5 × the push at **relief** pressure | safety factor on rod-only Euler; on the elastic stepped-column load | Euler is not consistently conservative: LD-80 rev A Euler 0.82 ×, elastic 1.28 ×, first yield 0.96 × (report) |
+| D-02 | LD-80: rod 63 mm + 50 mm stop tube | rod 56 with any stop tube; lower relief setting | rod 56 peaks at 1.33 × near a 100 mm stop tube; 63 + 50 gives 1.65 × (exploration runs, rev B in the report) |
+| D-03 | Girth weld at the zero-moment point of the base edge bending (19 mm HD-160, 9 mm LD-80) | thicker tube; stronger tube | HD-160 weld 0.38 → 1.03; a 25 mm wall with the weld at 10 mm gave only 0.81; 25CrMo4 makes it worse (0.54) |
+| D-04 | Weld fatigue uses the axisymmetric FE structural stress | thin-shell formula with a rigid base | FE is the better model (flexible base, real thickness) and is 5-6 % higher at the chosen welds; the conservative choice |
+| D-05 | Ports in the base and head blocks | ports through the tube wall | port fatigue 0.33 → 3.25 (HD-160) |
+| D-06 | Interface requirement IR-1: retract command limited (0.55 HD-160, 0.6 LD-80) | stronger cushion parts; counterbalance valve (outside the cylinder scope) | the overrunning load retracts at 0.41 / 0.52 m/s and drives the cap cushion to 446 / 463 bar |
+| D-07 | Separate cushion needle per end (LD-80 rod end 0.6 mm²) | one needle size for both ends | the 63 mm rod leaves a small annulus; a shared 3 mm² needle let the piston hit the stop at 0.19 m/s |
+| D-08 | PTFE step seal + PU tandem rod seal, PTFE piston seal | PU U-cup + PU compact | HD-160: PU not viable (extrusion margin 0.90 < 1); LD-80: PTFE wins 81 % of weight sets |
+| D-09 | Seal friction calibrated to published measurements; assumed values retired | keep assumed values until the bench test | assumed data gave a false "R-12 infeasible"; the calibrated model reproduces measured onsets within 2 × (test) |
+| D-10 | E355 +SR tube | 25CrMo4 +QT | weld fatigue decides, not static strength (section 6) |
+| D-11 | F-2 pass limit = stick-slip onset of the fitted bench curve ≤ v_min | a limit on the static/Coulomb friction ratio | with measured data the onset depends on the Stribeck speed more than on the static excess; a ratio limit came out non-binding |
+| D-12 | Heavy internal grooving bar added to the tool library (`data/cnc_tooling.json`) | smaller seal cross-section for the large gland | the seal cross-section follows the rod size; the tool is a shop input; 07 stays unchanged |
+| D-13 | ISO 6022 (25 MPa series) as the mounting reference for both orders | ISO 6020-2 (16 MPa compact) | both orders are rated 200-250 bar, above the 16 MPa series; the dimension tables themselves are open (O-4) |
+| D-14 | Proof factor 1.5 × max(rated, relief), assumed | none available without the standard | ISO 10100 §8.3 value not available; vendor guide gives 1.5 as typical (S25); open item O-1 |
+
+What remains open needs a paid standard, a supplier, a customer answer or hardware: see [OPEN_ITEMS.md](OPEN_ITEMS.md).

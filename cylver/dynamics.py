@@ -4,7 +4,7 @@ pressure history (input to fatigue), and the hydraulic natural frequency.
 States: x (m, 0 = fully retracted), v, pA, pB (cylinder chambers), pAl, pBl (hose/line volumes between
 valve and ports), u (valve spool, -1..1, first-order lag). Pressures are gauge (Pa).
 
-Physics and sources (see docs/DOSSIER.md section 9):
+Physics and sources (see DOSSIER.md section 13):
 - Chamber continuity dp/dt = (K_e / V)(sum Q - dV/dt): Merritt, Hydraulic Control Systems (1967) ch. 2-5;
   Jelali & Kroll, Hydraulic Servo-systems (2003) ch. 3.
 - Effective bulk modulus of oil + entrained air + container in series (Merritt's form, discussed by

@@ -1,7 +1,7 @@
 """Static stresses: thick-wall tube (Lame), flat base, tube-to-base junction bending, rod, rod thread,
 and the seal extrusion gap. Each function returns plain floats so the report can show the numbers.
 
-Formula sources (stated in docs/DOSSIER.md section 9, references):
+Formula sources (stated in DOSSIER.md section 13, references):
 - Lame thick cylinder: Budynas & Nisbett, Shigley's Mechanical Engineering Design, 'Pressurized cylinders'.
 - Clamped / simply supported circular plate: Timoshenko & Woinowsky-Krieger, Theory of Plates and Shells, ch. 3.
 - Edge bending of a cylinder joined to a rigid end: same book, ch. 15 (beam on elastic foundation).

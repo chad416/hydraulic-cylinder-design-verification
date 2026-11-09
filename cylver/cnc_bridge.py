@@ -8,6 +8,7 @@ diameter range); they are NOT seal-catalogue values.
 
 from __future__ import annotations
 
+import json
 import math
 import os
 import sys
@@ -129,12 +130,24 @@ def run_07(r: dict[str, dict], out_dir: Path, root07: Path | None = None) -> lis
     from cncgen.tooling import load_machine, load_tools  # type: ignore
     from cncgen.verify import verify  # type: ignore
 
-    tools = load_tools(root / "data" / "tools.json")
+    from cncgen.tooling import Tool  # type: ignore
+
+    base_tools = load_tools(root / "data" / "tools.json")
     m = load_machine(root / "data" / "machine.json")
+    extra = json.loads((Path(__file__).resolve().parent.parent / "data" / "cnc_tooling.json").read_text(encoding="utf-8"))
     out_dir.mkdir(parents=True, exist_ok=True)
     res = []
     for fam, row in r.items():
         srow = {k: str(v) for k, v in row.items()}
+        tools, lib = base_tools, "07 base library"
+        if fam == "gland":
+            deepest = max((row[k] - row["rod_d"] - row["id_clear"]) / 2 for k in ("wiper_bottom_d", "seal_bottom_d", "guide_bottom_d"))
+            t5 = next(t for t in base_tools.values() if t.kind == "groove_int")
+            if deepest > t5.max_depth:
+                hv = extra["heavy_internal_grooving"]
+                tools = dict(base_tools)
+                tools[hv["number"]] = Tool(**hv)
+                lib = f"07 library + heavy ID grooving bar ({hv['max_depth']:g} mm reach; groove {deepest:.2f} mm deep)"
         try:
             part = build_part(fam, srow, tools, m)
         except ValueError as e:
@@ -154,6 +167,7 @@ def run_07(r: dict[str, dict], out_dir: Path, root07: Path | None = None) -> lis
                 "result": "PASS" if n_err == 0 else f"{n_err} verifier errors: " + "; ".join(i.msg for i in v.errors[:3]),
                 "lines": len(text.splitlines()),
                 "cycle_time_s": round(tm.total_s, 1),
+                "tooling": lib,
             }
         )
         del v
