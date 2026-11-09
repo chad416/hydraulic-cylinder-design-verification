@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.pytest_tmp*/
+reports_run.log
+docs/DOSSIER.html

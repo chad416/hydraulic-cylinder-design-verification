@@ -1,0 +1,54 @@
+{
+  "_note": "Every value carries its source and whether it was re-checked in that source during this project (checked=true) or is quoted from memory / a secondary summary (checked=false). Unchecked values must be confirmed against the standard and the mill certificate before any real use.",
+  "steels": {
+    "E355+SR": {
+      "use": "honed / cold-drawn precision tube",
+      "E_GPa": 210, "nu": 0.3, "rho": 7850,
+      "Re_MPa": 450, "Rm_MPa": 580,
+      "source": "EN 10305-1 grade E355, condition +SR; values from a tube mill catalogue (Interpipe), seen only as a web-search summary",
+      "checked": false
+    },
+    "25CrMo4+QT": {
+      "use": "higher-strength tube (alternative)",
+      "E_GPa": 210, "nu": 0.3, "rho": 7850,
+      "Re_MPa": 600, "Rm_MPa": 800,
+      "source": "EN 10083-3, 25CrMo4 +QT, 40 < d <= 100 mm (from memory)",
+      "checked": false
+    },
+    "42CrMo4+QT": {
+      "use": "piston rod",
+      "E_GPa": 210, "nu": 0.3, "rho": 7850,
+      "Re_by_d": [[16, 900, 1100], [40, 750, 1000], [100, 650, 900], [160, 550, 800]],
+      "source": "EN 10083-3, 42CrMo4 +QT, minimum Re / Rm by ruling section d (upper bound, mm) (from memory)",
+      "checked": false
+    },
+    "C45E+N": {
+      "use": "piston rod (lower-cost alternative)",
+      "E_GPa": 210, "nu": 0.3, "rho": 7850,
+      "Re_by_d": [[16, 340, 620], [100, 305, 580], [250, 275, 560]],
+      "source": "EN 10083-2, C45E +N (from memory)",
+      "checked": false
+    }
+  },
+  "oil": {
+    "name": "HLP 46 mineral oil (ISO VG 46)",
+    "rho": 870, "nu40_cSt": 46.0, "nu100_cSt": 6.8,
+    "K_liquid_GPa": 1.6, "alpha_v_per_K": 0.0007, "kappa_air": 1.0,
+    "source": "VG 46 at 40 C by definition of the grade (ISO 3448); 100 C value, bulk modulus 1.6 GPa and expansion 7e-4 /K are typical mineral-oil values from memory; viscosity-temperature by the ASTM D341 Walther form (from memory)",
+    "checked": false
+  },
+  "weld_categories": {
+    "_note": "EN 1993-1-9 detail category = stress range at 2e6 cycles (MPa), slope m=3 to 5e6, m=5 to 1e8, cut-off below. Assignment of the tube-to-base weld to a category is a design decision recorded in the order file; 71 assumes a full-penetration weld with the root inspected, 36 assumes a one-sided weld with an uninspected root (IIW recommendations, from memory).",
+    "source": "EN 1993-1-9 S-N form; IIW (Hobbacher 2016) FAT values for one-sided butt welds (from memory)",
+    "checked": false
+  },
+  "fatigue_factors": {
+    "gamma_Mf_weld": 1.35,
+    "j_base_metal": 1.5,
+    "fW_sigma": 0.45,
+    "base_metal_ND": 1000000.0, "base_metal_k": 5,
+    "thread_ND": 2000000.0, "thread_k": 3,
+    "source": "gamma_Mf 1.35 = EN 1993-1-9 safe-life, high consequence; j=1.5 and fW=0.45, ND=1e6, k=5 = FKM guideline order of magnitude for machined steel; thread endurance VDI 2230-1 sigma_ASV = 0.85(150/d+45) MPa for threads rolled before heat treatment (all from memory)",
+    "checked": false
+  }
+}

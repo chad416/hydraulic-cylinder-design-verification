@@ -1,0 +1,133 @@
+{
+  "id": "LD-80",
+  "title": "Loader-arm double-acting cylinder, pinned both ends, long stroke",
+  "_note": "Illustrative order. Values are invented for the example, not taken from any customer.",
+  "order": {
+    "bore_mm": 80,
+    "rod_mm": 50,
+    "stroke_mm": 1200,
+    "p_rated_bar": 200,
+    "p_relief_bar": 220,
+    "p_supply_bar": 200,
+    "mounting": {
+      "rear": "pinned",
+      "front": "pinned",
+      "angle_deg": 20,
+      "pin_eccentricity_mm": 1.0
+    },
+    "moving_mass_kg": 1500,
+    "load_extend_kN": 60,
+    "speed_max_mm_s": 300,
+    "speed_min_smooth_mm_s": 10,
+    "duty": {
+      "cycles_per_hour": 60,
+      "hours_per_year": 1200,
+      "years": 8,
+      "mid_stroke_stops_per_cycle": 1
+    },
+    "drift_max_mm_10min": 5.0,
+    "oil_temp_C": [
+      0,
+      70
+    ],
+    "air_fraction_atm": 0.005
+  },
+  "design": {
+    "tube_material": "E355+SR",
+    "rod_material": "42CrMo4+QT",
+    "sf_static": 2.0,
+    "proof_factor": 1.5,
+    "piston_width_mm": 50,
+    "gland_length_mm": 70,
+    "gland_bearing_centre_mm": 30,
+    "stop_tube_mm": 0,
+    "piston_clear_mm": 0.2,
+    "gland_clear_mm": 0.15,
+    "rod_bow_mm_per_m": 0.2,
+    "tube_bow_mm_per_m": 0.3,
+    "rear_pin_to_base_mm": 70,
+    "rod_end_to_pin_mm": 65,
+    "base_weld_offset_mm": 6,
+    "weld_category": 71,
+    "port_d_mm": 13,
+    "port_Kt": 3.0,
+    "rod_thread": {
+      "d_mm": 36,
+      "pitch_mm": 2,
+      "phi_n": 0.3
+    },
+    "rod_seal": "PU_ucup",
+    "piston_seal": "PU_compact",
+    "cushion": {
+      "length_mm": 25,
+      "gap_tip_mm": 0.3,
+      "gap_root_mm": 0.05,
+      "needle_mm2": 1.5,
+      "spear_d_rod_mm": 56,
+      "spear_d_cap_mm": 40
+    },
+    "hose": {
+      "id_mm": 13,
+      "length_m": 2.5,
+      "K_hose_GPa": 0.5
+    },
+    "valve_tau_s": 0.03,
+    "dead_volume_cm3": 40,
+    "port_location": "tube",
+    "retract_command": 1.0
+  },
+  "variants": [
+    {
+      "name": "rev B",
+      "why": "rev A fails the buckling requirement (usable load 0.96 x relief push). A 56 mm rod reaches only 1.33 at any stop-tube length; 63 mm with a 50 mm stop tube reaches the 1.5 target.",
+      "order": {
+        "rod_mm": 63
+      },
+      "design": {
+        "stop_tube_mm": 50,
+        "rod_thread": {
+          "d_mm": 48,
+          "pitch_mm": 2,
+          "phi_n": 0.3
+        },
+        "cushion": {
+          "length_mm": 25,
+          "gap_tip_mm": 0.3,
+          "gap_root_mm": 0.05,
+          "needle_mm2": 1.5,
+          "spear_d_rod_mm": 70,
+          "spear_d_cap_mm": 40
+        }
+      }
+    },
+    {
+      "name": "rev C",
+      "why": "rev B fixes buckling, but the base weld fails fatigue (0.39 governing, ports through the tube wall) and the overrunning retraction (0.49 m/s) drives the cap cushion to 411 bar; the rod-end cushion lets the piston hit the stop at 0.19 m/s; and the seal trade study (rev B) ranks the PTFE system first in 100 % of weight sets (stick-slip onset 11.9 vs 25.3 mm/s). Changes: ports into the end blocks, weld at the zero-moment point (9 mm), retract command limited to 0.6, cap needle 3 mm2 and a separate rod-end needle 0.6 mm2, PTFE seal system.",
+      "order": {
+        "rod_mm": 63
+      },
+      "design": {
+        "stop_tube_mm": 50,
+        "rod_thread": {
+          "d_mm": 48,
+          "pitch_mm": 2,
+          "phi_n": 0.3
+        },
+        "cushion": {
+          "length_mm": 25,
+          "gap_tip_mm": 0.3,
+          "gap_root_mm": 0.05,
+          "needle_mm2": 3.0,
+          "spear_d_rod_mm": 70,
+          "spear_d_cap_mm": 40,
+          "needle_rod_mm2": 0.6
+        },
+        "port_location": "block",
+        "base_weld_offset_mm": 9,
+        "retract_command": 0.6,
+        "rod_seal": "PTFE_step+PU",
+        "piston_seal": "PTFE_compact"
+      }
+    }
+  ]
+}
