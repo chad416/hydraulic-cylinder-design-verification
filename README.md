@@ -14,7 +14,7 @@ It derives the requirements, FMEA and acceptance-test pass limits from those num
 
 The engineering argument, structured as a systems-engineering dossier after Wasson (2016), is in **[DOSSIER.md](DOSSIER.md)** ([PDF](DOSSIER.pdf)). The full calculation reports are [reports/HD-160.md](reports/HD-160.md) and [reports/LD-80.md](reports/LD-80.md).
 
-**Everything here is analysis and simulation.** No cylinder was built or tested. Seal friction is calibrated to a published test series (two open-access papers); the extrusion-gap limits are still assumed. The ISO/TS 13725 equations were not available, so the buckling model follows the standard's principles with a classical beam-column FE. See [Limits](#limits).
+**Everything here is analysis and simulation.** No cylinder was built or tested. Seal friction is calibrated to a published test series (two open-access papers); the extrusion-gap limits come from a seal maker's installation tables. The ISO/TS 13725 equations were not available, so the buckling model follows the standard's principles with a classical beam-column FE. See [Limits](#limits).
 
 ![tube wall next to the base: the weld moved to the zero-moment point](docs/img/HD-160_revA_junction.png)
 
@@ -108,7 +108,7 @@ The CNC hand-off looks for project 07 next to this folder, or at `CNCGEN_ROOT`.
 ## Limits
 
 - **Simulation only.** The acceptance procedure is written so that passing it would also validate the models; that has not happened.
-- **Seal friction comes from one published test series.** The viscous terms and the extrusion-gap limits are assumed. ISO 10100 module F on the real cylinder would measure them.
+- **Seal friction comes from one published test series.** The viscous terms are assumed. The extrusion-gap limits are the seal maker's installation tables (Trelleborg 2011). With them the polyurethane seal set becomes viable for both orders and the judgement-weighted trade now ranks it first, while every model criterion still favours PTFE: the seal choice goes to the customer and the seal supplier (DOSSIER decision D-15). ISO 10100 module F on the real cylinder would measure the friction.
 - **Buckling follows the principles of ISO/TS 13725, not its equations.** The 1.5 × first-yield target is this project's choice.
 - **The base junction is checked by a linear, homogeneous axisymmetric FE model.** Weld geometry and residual stress are left to the weld detail category; strain gauges on a type-test unit remain the hardware check.
 - **Material values are from memory or secondary summaries.** They are marked `checked: false` in `data/materials.json`.

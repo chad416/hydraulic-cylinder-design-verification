@@ -102,7 +102,7 @@
     },
     {
       "name": "rev C",
-      "why": "rev B fixes buckling, but the base weld fails fatigue (ports through the tube wall govern at 0.39) and the overrunning retraction (0.49 m/s) drives the cap cushion to 411 bar; the rod-end cushion lets the piston hit the stop at 0.19 m/s; and the seal trade study ranks the PTFE system first (81 % of weight sets: lower friction, larger extrusion margin, measured-data stick-slip onset 1.8 vs 2.3 mm/s). Changes: ports into the end blocks, weld at the zero-moment point (9 mm), retract command limited to 0.6, cap needle 3 mm2 and a separate rod-end needle 0.6 mm2, PTFE seal system.",
+      "why": "rev B fixes buckling, but the base weld fails fatigue (ports through the tube wall govern at 0.39) and the overrunning retraction (0.49 m/s) drives the cap cushion to 411 bar; the rod-end cushion lets the piston hit the stop at 0.19 m/s; and the model criteria of the seal trade favour the PTFE system (lower friction, measured-data stick-slip onset 1.8 vs 2.3 mm/s, larger extrusion margin against the seal maker's tables); see decision D-15 for the judgement criteria. Changes: ports into the end blocks, weld at the zero-moment point (9 mm), retract command limited to 0.6, cap needle 3 mm2 and a separate rod-end needle 0.6 mm2, PTFE seal system.",
       "order": {
         "rod_mm": 63
       },

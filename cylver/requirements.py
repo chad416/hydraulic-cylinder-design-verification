@@ -48,7 +48,7 @@ def derive(res: dict) -> list[dict]:
     add("R-08", f"Every fatigue-critical location shall survive {gov['required']:.3g} design duty cycles with the partial factors applied (stress factor >= 1).",
         "order: duty x years; EN 1993-1-9 / FKM / VDI 2230 S-N", "A; T (ISO 10771-1 Annex B type test)", f"{gov['loc']}: {gov['stress_factor']:.2f}", ">= 1.00", gov["stress_factor"] >= 1.0)
     add("R-09", "The radial extrusion gap of the piston seal at relief pressure shall not exceed the seal's allowable gap.",
-        "seal maker gap chart (assumed values)", "A; I (clearances)", f"{res['gap']['gap_mm']:.3f} mm", f"<= {res['gap_allow_mm']:.2f} mm", res["gap"]["gap_mm"] <= res["gap_allow_mm"])
+        "seal maker installation table (S max, Trelleborg catalogue 2011)", "A; I (clearances)", f"{res['gap']['gap_mm']:.3f} mm", f"<= {res['gap_allow_mm']:.2f} mm", res["gap"]["gap_mm"] <= res["gap_allow_mm"])
     add("R-10", f"The cushion chamber pressure shall not exceed the proof pressure ({p_proof:.0f} bar) in any end-of-stroke case, 0-40 C oil.",
         "derived: cushion chamber is not protected by the port relief", "A; T (cushion test)", f"{cush_peak:.0f} bar ({cush_worst['side']} end, {cush_worst['T_C']:.0f} C)", f"<= {p_proof:.0f} bar", cush_peak <= p_proof)
     add("R-11", "The piston shall reach the end stop at <= 0.10 m/s.", "project target (end-stop impact)", "A; T", f"{v_imp:.3f} m/s", "<= 0.10 m/s", v_imp <= 0.10)

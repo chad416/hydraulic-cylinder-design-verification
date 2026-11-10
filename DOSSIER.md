@@ -35,7 +35,7 @@ The verified designs meet every other requirement: HD-160 rev B misses only the 
 - limit the retract command, because the load overruns;
 - set each cushion needle for its own end.
 
-LD-80 rev C also takes the PTFE seal system that its own trade study picked in 100 % of weight sets.
+LD-80 rev C keeps the PTFE seal system that every model criterion of its trade study favours (decision D-15 explains why the judgement-weighted ranking, which now prefers PU, does not decide it).
 
 The parts are handed to the CNC part-family generator (project 07), which generates and verifies the lathe programs. For LD-80 rev C, 07 accepts and verifies all three parts. For HD-160 rev B, the gland's internal grooves (7.4 mm deep) need a heavier internal grooving bar than 07's base library has (6 mm reach). The bridge adds that bar to the tool library as a tooling requirement, without changing 07, and all three parts then pass.
 
@@ -116,7 +116,7 @@ Each requirement follows Principle 22.5 (p. 449): subject, *shall*, action, outc
 | R-06 | rod thread ≤ Re/2 at relief pull | ISO 898-1 | A | met | met |
 | R-07 | first yield at full extension ≥ 1.5 × push at relief | ISO/TS 13725 approach; 1.5 = project target | A | met (1.65) | met (1.65) |
 | R-08 | every fatigue location survives the required duty cycles | order duty; S-N sources | A (axisymmetric FE at the weld); T (ISO 10771-1) | met (1.03, weld) | met (1.10, weld) |
-| R-09 | piston-seal extrusion gap ≤ allowable | seal makers' gap charts (values assumed, tables not retrieved) | A; I | met | met |
+| R-09 | piston-seal extrusion gap ≤ allowable | seal maker's installation tables, S max by bore and pressure (Trelleborg 2011, Glyd Ring Table X, U-Cup PUA Table XLVI; S26) | A; I | met (0.199 ≤ 0.31 mm) | met (0.132 ≤ 0.28 mm) |
 | R-10 | cushion peak ≤ proof pressure, 0-40 °C | derived (relief does not protect the cushion) | A; T | met (324 / 420 bar) | met (273 / 330 bar) |
 | R-11 | end-stop impact ≤ 0.10 m/s | project target | A; T | met (0.080) | met (0.090) |
 | R-12 | no stick-slip down to v_min | order; seal data from Sârbu et al. 2022/2024 | A; T (ISO 10100 module F) | met (onset 1.8 mm/s) | met (onset 1.8 mm/s) |
@@ -215,7 +215,7 @@ Each score is marked **model** (computed by `cylver`) or **judgement** (rational
 
 | Trade | Result (HD-160 rev B) | Robust? | What decides it |
 |---|---|---|---|
-| Seal system | PTFE step seal + PU tandem, PTFE piston seal | HD-160: the PU system is **not viable** (extrusion margin 0.90 < 1, R-09), so it is screened out before scoring (Wasson's viable-alternative rule, p. 683). LD-80: PTFE wins 81 % of weight sets; no ±10 % weight change flips it | **model (measured-data seals):** stick-slip onset 1.8 vs 2.3 mm/s, so both are smooth at 10 mm/s; lower friction and a larger extrusion margin for PTFE. These outweigh the judgement criteria (dry rod, contamination, cost) that favour PU. |
+| Seal system | PTFE step seal + PU tandem, PTFE piston seal (decision D-15) | With the seal maker's extrusion tables (S26) both systems are viable for both orders (PU margin HD-160 1.10, LD-80 2.12; PTFE 1.56 and 2.19). The weighted sum now ranks **PU first**: HD-160 5.35 vs 5.28 (59 % of weight sets), LD-80 6.29 vs 5.88 (100 %) | **model criteria all favour PTFE:** stick-slip onset 1.8 vs 2.3 mm/s, lower friction, larger extrusion margin. The PU lead comes only from the judgement scores (dry rod, contamination, cost). An earlier version screened PU out for HD-160 on *assumed* gap values (margin 0.90); the catalogue values reversed that. |
 | Rod surface | HVOF WC-CoCr (65 % of weight sets) ahead of laser cladding (24 %); hard chrome last (6 %) | no ±10 % flip, but **all scores are judgement**, so the ranking is only as good as the scores | the regulatory criterion: Cr(VI) restriction dossier submitted 11 Apr 2025, opinions pending (news source, section 13). Coupon tests (salt spray ISO 9227, abrasion) would replace the judgement scores. |
 | Tube material | E355 +SR | wins 100 % of weight sets | **model:** the stronger 25CrMo4 tube is sized thinner (7.5 mm instead of 11.25 mm), so its *weld* fatigue factor drops from 1.03 to 0.54 (LD-80: 1.10 to 0.80). Higher strength does not help a weld. |
 
@@ -265,7 +265,7 @@ FMEA with RPN = S × O × D (Wasson eq. 34.41, p. 765, after Dhillon). Occurrenc
 | cushion over-pressure | 0.94 | 9 | 288 |
 | column buckling | 1.65 | 3 | 180 |
 | piston-nut thread fatigue | 6.5 | 2 | 160 |
-| piston-seal extrusion | 1.41 | 5 | 150 |
+| piston-seal extrusion | 1.56 | 3 | 90 |
 
 For rev B, the occurrence drops for three rows. The weld goes from O = 9 to 7 (margin 1.03), the port from 9 to 2 (margin 3.25) and the cushion from 9 to 5 (margin 1.30). The top of the rev B ranking is:
 
@@ -350,7 +350,7 @@ The first run rejected the HD-160 gland: 07's base tool library reaches 6 mm wit
 ## 12. Limits and assumptions (what is assumed vs sourced)
 
 - **Not validated on hardware.** Every result is analysis and simulation. The acceptance procedure is the plan to validate the models.
-- **Seal friction is calibrated to one published test series** (two 60 mm coaxial seals, PTFE and PU, 0-160 bar, Sârbu et al. 2022/2024). The viscous coefficients are still assumed, and the PU U-cup uses PU coaxial-seal data. **The extrusion-gap limits are still assumed:** the seal makers' tables could not be retrieved. Module F on the real cylinder would replace all of these.
+- **Seal friction is calibrated to one published test series** (two 60 mm coaxial seals, PTFE and PU, 0-160 bar, Sârbu et al. 2022/2024). The viscous coefficients are still assumed, and the PU U-cup uses PU coaxial-seal data. The extrusion-gap limits are the seal maker's installation tables (S26); the PU rod U-cup uses the PU piston U-cup table, the closest published polyurethane values. Module F on the real cylinder would replace the friction values.
 - **ISO/TS 13725 equations were not available.** The buckling model follows the standard's published principles (geometric model, off-axis load, own weight, fully extended) with a classical beam-column FE. The first-yield criterion and the 1.5 target are this project's choices.
 - **Material values are from memory or secondary summaries** (marked `checked: false` in `data/materials.json`). E355 +SR uses 450 / 580 MPa from a mill catalogue summary; a recalled 520 / 640 was not confirmed and is not used.
 - **Base junction:** the shell solution is now checked by an axisymmetric FE model, which agrees on the zero-moment point to 0.1 mm. Both are linear elastic and homogeneous. Weld geometry and residual stress are covered only by the weld detail category, so strain gauges near the weld on the type-test unit remain the hardware check (OPEN_ITEMS O-7).
@@ -386,6 +386,7 @@ The first run rejected the HD-160 gland: 07's base tool library reaches 6 mm wit
 | S15 | ISO 898-1 | thread stress area | test against the tabulated M20 value (245 mm^2) |
 | S16 | B. Armstrong-Helouvry, P. Dupont, C. Canudas de Wit, "A survey of models, analysis tools and compensation methods for the control of machines with friction", Automatica 30(7), 1994 | Stribeck model, stick-slip | not re-checked; test: simulation agrees with the linear criterion |
 | S17 | H. K. Mueller, B. S. Nau, *Fluid Sealing Technology* | pressure-dependent seal friction, extrusion | not re-checked |
+| S26 | Trelleborg Sealing Solutions, *Hydraulic Seals - Linear: Piston Seals* and *Rod Seals*, Edition January 2011: Turcon Glyd Ring Table X (S max 10/20/40 MPa: bore 80-132.9 mm 0.50/0.30/0.20, 133-329.9 mm 0.60/0.35/0.25), Zurcon U-Cup PUA Table XLVI (S max 5/10/20/30/40 MPa, DN > 60 mm: 0.50/0.40/0.30/0.20/0.15), Turcon Stepseal 2K Table XII (rod 38-199.9 mm: 0.70/0.40/0.25) | R-09 extrusion limits (`cylver/seals.py`) | checked: catalogue PDFs read, tables transcribed (closed OPEN_ITEMS O-5 on 10 Nov 2026) |
 | S23 | F. A. Sârbu, F. Arnăuţ, A. Deaconescu, T. Deaconescu, "Theoretical and experimental research concerning the friction forces developed in hydraulic cylinder coaxial sealing systems made from polymers", *Polymers* 16(1):157, 2024, doi:10.3390/polym16010157 (CC BY) | seal friction vs pressure and speed (Tables 3, 5) | checked: full text read, tables used |
 | S24 | same group, "Experimental research on polymer-based coaxial sealing systems of hydraulic cylinders for small displacement velocities", *Polymers* 14(2):290, 2022, doi:10.3390/polym14020290 (CC BY) | seal size (60 × 4 mm); measured stick-slip onsets (PTFE < 0.2 mm/s, PU < 1.4 mm/s) | checked: full text read |
 | S25 | hydraulic-cylinders.net, "Hydraulic cylinder pressure testing: ISO standards and quality control procedures" (vendor guide) | proof pressure "typically 1.5 × the maximum working pressure" | secondary, vendor source; ISO 10100 §8.3 itself not available |
@@ -408,12 +409,13 @@ Each decision names the evidence it rests on (Wasson Principle 32.5, p. 697: an 
 | D-05 | Ports in the base and head blocks | ports through the tube wall | port fatigue 0.33 → 3.25 (HD-160) |
 | D-06 | Interface requirement IR-1: retract command limited (0.55 HD-160, 0.6 LD-80) | stronger cushion parts; counterbalance valve (outside the cylinder scope) | the overrunning load retracts at 0.41 / 0.52 m/s and drives the cap cushion to 446 / 463 bar |
 | D-07 | Separate cushion needle per end (LD-80 rod end 0.6 mm²) | one needle size for both ends | the 63 mm rod leaves a small annulus; a shared 3 mm² needle let the piston hit the stop at 0.19 m/s |
-| D-08 | PTFE step seal + PU tandem rod seal, PTFE piston seal | PU U-cup + PU compact | HD-160: PU not viable (extrusion margin 0.90 < 1); LD-80: PTFE wins 81 % of weight sets |
+| D-08 | PTFE step seal + PU tandem rod seal, PTFE piston seal | PU U-cup + PU compact | original evidence (PU not viable for HD-160 at margin 0.90; PTFE 81 % for LD-80) rested on assumed gap values; superseded by D-15 |
 | D-09 | Seal friction calibrated to published measurements; assumed values retired | keep assumed values until the bench test | assumed data gave a false "R-12 infeasible"; the calibrated model reproduces measured onsets within 2 × (test) |
 | D-10 | E355 +SR tube | 25CrMo4 +QT | weld fatigue decides, not static strength (section 6) |
 | D-11 | F-2 pass limit = stick-slip onset of the fitted bench curve ≤ v_min | a limit on the static/Coulomb friction ratio | with measured data the onset depends on the Stribeck speed more than on the static excess; a ratio limit came out non-binding |
 | D-12 | Heavy internal grooving bar added to the tool library (`data/cnc_tooling.json`) | smaller seal cross-section for the large gland | the seal cross-section follows the rod size; the tool is a shop input; 07 stays unchanged |
 | D-13 | ISO 6022 (25 MPa series) as the mounting reference for both orders | ISO 6020-2 (16 MPa compact) | both orders are rated 200-250 bar, above the 16 MPa series; the dimension tables themselves are open (O-4) |
 | D-14 | Proof factor 1.5 × max(rated, relief), assumed | none available without the standard | ISO 10100 §8.3 value not available; vendor guide gives 1.5 as typical (S25); open item O-1 |
+| D-15 | Keep the PTFE seal system after the seal maker's extrusion tables made PU viable and the weighted sum now ranks PU first | switch both orders to PU U-cup + PU compact | every model criterion still favours PTFE (onset 1.8 vs 2.3 mm/s, friction, extrusion margin); the PU lead (HD-160 5.35 vs 5.28, LD-80 6.29 vs 5.88) comes only from judgement scores, which Principle 32.5 (p. 697) treats as opinion until backed by data. The choice is handed to the customer and the seal supplier with the trade table as evidence (OPEN_ITEMS O-12). This replaces the part of D-08 that rested on the assumed gap values |
 
 What remains open needs a paid standard, a supplier, a customer answer or hardware: see [OPEN_ITEMS.md](OPEN_ITEMS.md).

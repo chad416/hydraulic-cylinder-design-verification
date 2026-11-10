@@ -20,10 +20,19 @@ Derived per seal (circumference pi x 60 = 188.5 mm):
   (0.125 vs 1.6 mm/s) 3-12 N per seal at 40-160 bar -> fs ~0.04 N/mm with vs 0.2 mm/s.
 - H-PU 55D: 83.7 N at 0 bar, slope 8.95 N/MPa (1.75 mm/s) -> f0 0.444, fp 0.0475. Excess (0.7 vs
   1.75 mm/s) 5-27 N per seal -> fs 0.045 N/mm at 0 bar rising to 0.20 N/mm from 2 MPa, vs 1.0 mm/s.
-STILL ASSUMED: the viscous coefficients fv (only matter at high speed), the use of PU coaxial-seal data
-for a PU U-cup (closest published data found), and the extrusion-gap limits gap_mm (seal makers' tables,
-not retrieved). test_seal_model_reproduces_measured_onsets checks the calibrated model against the
-measured stick-slip onsets.
+EXTRUSION GAP LIMITS (checked, seal maker's catalogues, Trelleborg Sealing Solutions, Edition January 2011):
+- "Hydraulic Seals - Linear, Piston Seals", Turcon Glyd Ring, Table X (installation dimensions): maximum radial
+  clearance S max at 10 / 20 / 40 MPa, standard application, by bore DN: 80-132.9 mm 0.50 / 0.30 / 0.20;
+  133-329.9 mm 0.60 / 0.35 / 0.25 (40-79.9 mm 0.40 / 0.25 / 0.20).
+- same catalogue, Zurcon U-Cup PUA (polyurethane 93 Shore A piston U-cup), Table XLVI: S max at 5 / 10 / 20 /
+  30 / 40 MPa = 0.50 / 0.40 / 0.30 / 0.20 / 0.15 mm for DN > 60 mm (0.40 / 0.30 / 0.20 / 0.15 / 0.10 for
+  DN < 60 mm), to be reduced by 30 % above 80 C (not reached: oil 0-70 C).
+- "Hydraulic Seals - Linear, Rod Seals", Turcon Stepseal 2K, Table XII: S max at 10 / 20 / 40 MPa, standard
+  application, rod 38-199.9 mm: 0.70 / 0.40 / 0.25 (19-37.9 mm: 0.50 / 0.30 / 0.20).
+The PU rod U-cup uses the PUA piston table as the closest published polyurethane values.
+STILL ASSUMED: the viscous coefficients fv (only matter at high speed) and the use of PU coaxial-seal data
+for a PU U-cup (closest published data found). test_seal_model_reproduces_measured_onsets checks the
+calibrated model against the measured stick-slip onsets.
 """
 
 from __future__ import annotations
@@ -36,13 +45,18 @@ from scipy.integrate import solve_ivp
 
 PTFE = {"f0": 0.158, "fp": 0.034, "fs0": 0.040, "fs1": 0.040, "vs": 0.2e-3, "fv": 1.2}
 PU = {"f0": 0.444, "fp": 0.0475, "fs0": 0.045, "fs1": 0.20, "vs": 1.0e-3, "fv": 3.0}
-# elements: (data, share of the sealed pressure it sees); gap_mm = allowable radial extrusion gap at
-# 16 / 25 / 40 MPa (ASSUMED, seal makers' charts not retrieved)
+# elements: (data, share of the sealed pressure it sees); gap = allowable radial extrusion gap S max (mm) from the
+# seal maker's installation tables (see the module docstring): pressures (MPa) and, per diameter band (upper
+# limit of the band in mm), the S max values at those pressures.
+_GAP_PUA = {"p": (5, 10, 20, 30, 40), "bands": ((60.0, (0.40, 0.30, 0.20, 0.15, 0.10)), (1e9, (0.50, 0.40, 0.30, 0.20, 0.15)))}
+_GAP_GLYD = {"p": (10, 20, 40), "bands": ((79.9, (0.40, 0.25, 0.20)), (132.9, (0.50, 0.30, 0.20)), (329.9, (0.60, 0.35, 0.25)),
+                                         (669.9, (0.60, 0.35, 0.25)))}
+_GAP_STEP2K = {"p": (10, 20, 40), "bands": ((37.9, (0.50, 0.30, 0.20)), (199.9, (0.70, 0.40, 0.25)), (255.9, (0.80, 0.60, 0.35)))}
 SEALS = {
-    "PU_ucup": {"elements": [(PU, 1.0)], "gap_mm": (0.30, 0.20, 0.10), "desc": "polyurethane U-cup (PU coaxial data as proxy)"},
-    "PU_compact": {"elements": [(PU, 1.0)], "gap_mm": (0.30, 0.20, 0.10), "desc": "polyurethane compact piston seal"},
-    "PTFE_step+PU": {"elements": [(PTFE, 1.0), (PU, 0.0)], "gap_mm": (0.40, 0.30, 0.20), "desc": "PTFE step seal + PU U-cup tandem"},
-    "PTFE_compact": {"elements": [(PTFE, 1.0)], "gap_mm": (0.40, 0.30, 0.20), "desc": "PTFE glide ring with O-ring energiser"},
+    "PU_ucup": {"elements": [(PU, 1.0)], "gap": _GAP_PUA, "desc": "polyurethane U-cup (PU coaxial data as proxy)"},
+    "PU_compact": {"elements": [(PU, 1.0)], "gap": _GAP_PUA, "desc": "polyurethane compact piston seal"},
+    "PTFE_step+PU": {"elements": [(PTFE, 1.0), (PU, 0.0)], "gap": _GAP_STEP2K, "desc": "PTFE step seal + PU U-cup tandem"},
+    "PTFE_compact": {"elements": [(PTFE, 1.0)], "gap": _GAP_GLYD, "desc": "PTFE glide ring with O-ring energiser"},
 }
 FS_SCALE = {"k": 1.0, "v": 1.0}  # multiply every static excess / Stribeck speed (test and what-if use only)
 
@@ -92,8 +106,12 @@ class Seal:
         return out
 
     def gap_allow(self, p: float) -> float:
-        """Allowable radial extrusion gap (mm) at pressure p, linear between the table points."""
-        return float(np.interp(p / 1e6, [16, 25, 40], self.p["gap_mm"]))
+        """Allowable radial extrusion gap S max (mm) at pressure p (Pa) for this seal's diameter band, linear
+        between the catalogue's pressure points (held constant outside them)."""
+        g = self.p["gap"]
+        d_mm = self.d * 1e3
+        vals = next(v for dmax, v in g["bands"] if d_mm <= dmax)
+        return float(np.interp(p / 1e6, g["p"], vals))
 
 
 def seals_of(des) -> tuple[Seal, Seal]:
